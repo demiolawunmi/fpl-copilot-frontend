@@ -212,7 +212,7 @@ function calculateManualPoints(squad: Player[], activeChip: string | null): numb
     // Bench boost: all players count
     return squad.reduce((sum, player) => sum + player.points, 0);
   } else {
-    // Normal: only starting XI (position 1-11, multiplier > 0)
+    // Normal: only starting XI (multiplier > 0 indicates starting player)
     return squad
       .filter((player) => player.multiplier > 0)
       .reduce((sum, player) => sum + player.points, 0);

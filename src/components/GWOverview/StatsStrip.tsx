@@ -21,7 +21,7 @@ const StatsStrip = ({ stats, manualPoints, showManualPoints }: StatsStripProps) 
       value: stats.points.toString(),
       color: 'text-emerald-400',
     },
-    ...(showManualPoints && manualPoints !== null && manualPoints !== undefined && manualPoints !== stats.points
+    ...(showManualPoints && manualPoints != null && manualPoints !== stats.points
       ? [
           {
             label: 'Manual Points',
