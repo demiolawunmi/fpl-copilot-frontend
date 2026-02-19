@@ -17,6 +17,6 @@ export const fplEndpoints = {
         `${PL_RESOURCES}/${size}/${code}.png`,
 
     // Team badges (use team `code`, NOT `id`) — include size segment to use the `size` param
-    teamBadge: (teamCode: number | string, size: "t40" | "t80" | "t110" = "t80") =>
+    teamBadge: (teamCode: number | string, _size: "t40" | "t80" | "t110" = "t80") =>
         `${PL_BADGES}/${teamCode}.svg`,
 };

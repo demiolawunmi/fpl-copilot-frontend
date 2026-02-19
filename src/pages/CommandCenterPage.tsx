@@ -26,31 +26,42 @@ import CustomTransferBuilder from '../components/command-center/CustomTransferBu
 import ModelComparisonPanel from '../components/command-center/ModelComparisonPanel';
 import SandboxCharts from '../components/command-center/SandboxCharts';
 import AskCopilotChat from '../components/command-center/AskCopilotChat';
-import VideoInsightsCard from '../components/command-center/VideoInsightsCard';
+import VideoInsightsStrip from '../components/command-center/VideoInsightsStrip';
 
 // Command Center hook – targets the NEXT GW and uses /api/fpl/my-team picks
 import { useCommandCenterData } from '../hooks/useCommandCenterData';
+import { usePredictionsData } from '../hooks/usePredictionsData';
 import type { Player as UiPlayer } from '../data/gwOverviewMocks';
+import InFormCard from '../components/command-center/InFormCard';
+import BandwagonsCard from '../components/command-center/BandwagonsCard';
+import { getOpponentDifficulty } from '../utils/difficulty';
 
 type Tab = 'pick-team' | 'sandbox';
 
-const mapUiPlayerToEnhanced = (p: UiPlayer): EnhancedPlayer => ({
-  id: p.id ?? 0,
-  name: p.name,
-  position: p.position,
-  team: '',
-  teamAbbr: p.teamAbbr ?? '',
-  price: p.sellingPrice ? p.sellingPrice / 10 : 0,
-  xPts: p.points ?? 0,
-  points: p.points ?? 0,
-  minutesRisk: 'Unknown',
-  injuryStatus: 'Available',
-  isCaptain: p.isCaptain,
-  isViceCaptain: p.isViceCaptain,
-  isBench: p.isBench,
-  photoUrl: p.photoUrl,
-  opponents: p.opponents,
-});
+const mapUiPlayerToEnhanced = (p: UiPlayer, predMap: Map<number, any>, fixtureMap: Map<number, any>): EnhancedPlayer => {
+  const pred = p.id ? predMap.get(p.id) : undefined;
+  const fixture = p.id ? fixtureMap.get(p.id) : undefined;
+  
+  return {
+    id: p.id ?? 0,
+    name: p.name,
+    position: p.position,
+    team: '',
+    teamAbbr: p.teamAbbr ?? '',
+    price: p.sellingPrice ? p.sellingPrice / 10 : 0,
+    xPts: pred?.xp ?? p.points ?? 0,
+    points: p.points ?? 0,
+    minutesRisk: 'Unknown',
+    injuryStatus: 'Available',
+    isCaptain: p.isCaptain,
+    isViceCaptain: p.isViceCaptain,
+    isBench: p.isBench,
+    photoUrl: p.photoUrl,
+    opponents: fixture?.fixtures?.map((f: any) => 
+      `${f.is_home ? 'H' : 'A'} ${f.opponent_short}`
+    ) ?? p.opponents,
+  };
+};
 
 const CommandCenterPage = () => {
   const { teamId } = useTeamId();
@@ -58,6 +69,9 @@ const CommandCenterPage = () => {
 
   // Dedicated Command Center hook – always targets next GW, uses backend picks
   const cc = useCommandCenterData(teamId);
+  
+  // AIrsenal predictions & fixtures hook
+  const predictions = usePredictionsData(cc.nextGW || 27);
 
   // State for sandbox
   const [realSquad, setRealSquad] = useState<EnhancedPlayer[]>(mockEnhancedSquad);
@@ -67,12 +81,14 @@ const CommandCenterPage = () => {
 
   // When backend squad arrives, replace mock data
   useEffect(() => {
-    if (!cc.loading && cc.error == null && cc.squad.length > 0) {
-      const enhanced = cc.squad.map((p) => mapUiPlayerToEnhanced(p as UiPlayer));
+    if (!cc.loading && cc.error == null && cc.squad.length > 0 && !predictions.loading) {
+      const enhanced = cc.squad.map((p) => 
+        mapUiPlayerToEnhanced(p as UiPlayer, predictions.predictions, predictions.fixturesByPlayer)
+      );
       setRealSquad(enhanced);
       setSandboxSquad(enhanced.map((e) => ({ ...e })));
     }
-  }, [cc.loading, cc.error, cc.squad]);
+  }, [cc.loading, cc.error, cc.squad, predictions.loading, predictions.predictions, predictions.fixturesByPlayer]);
 
   const teamStatus: TeamStatus = useMemo(() => {
     const mt = cc.myTeam;
@@ -237,16 +253,46 @@ const CommandCenterPage = () => {
                   <div className="rounded-2xl bg-rose-900/10 border border-rose-800 p-6 text-center text-rose-400">{cc.error}</div>
                 ) : (
                   <PitchCard
-                    squad={sandboxSquad.map((p) => ({
-                      name: p.name,
-                      position: p.position,
-                      points: p.points,
-                      isCaptain: p.isCaptain,
-                      isViceCaptain: p.isViceCaptain,
-                      isBench: p.isBench,
-                      photoUrl: p.photoUrl,
-                      chipLabel: p.opponents && p.opponents.length > 0 ? p.opponents.join(', ') : p.teamAbbr || undefined,
-                    }))}
+                    squad={sandboxSquad.map((p) => {
+                      // Get fixture data for opponent difficulty coloring
+                      const fixture = predictions.fixturesByPlayer.get(p.id);
+                      const firstFixture = fixture?.fixtures?.[0];
+                      
+                      let chipLabel = undefined;
+                      let chipDifficulty = undefined;
+                      
+                      if (firstFixture) {
+                        const calculatedDifficulty = getOpponentDifficulty(
+                          firstFixture.opponent_short,
+                          firstFixture.difficulty
+                        );
+                        chipDifficulty = calculatedDifficulty;
+                        
+                        // Format opponent display
+                        const opponentStr = `${firstFixture.is_home ? 'H' : 'A'} ${firstFixture.opponent_short}`;
+                        chipLabel = opponentStr;
+                      } else if (p.opponents && p.opponents.length > 0) {
+                        chipLabel = p.opponents.join(', ');
+                      } else {
+                        chipLabel = p.teamAbbr || undefined;
+                      }
+                      
+                      // Show xP instead of points for next GW
+                      const pred = predictions.predictions.get(p.id);
+                      const displayPoints = pred?.xp ?? p.xPts ?? p.points;
+                      
+                      return {
+                        name: p.name,
+                        position: p.position,
+                        points: displayPoints,
+                        isCaptain: p.isCaptain,
+                        isViceCaptain: p.isViceCaptain,
+                        isBench: p.isBench,
+                        photoUrl: p.photoUrl,
+                        chipLabel,
+                        chipDifficulty,
+                      };
+                    })}
                   />
                 )}
 
@@ -260,6 +306,8 @@ const CommandCenterPage = () => {
                   onAutoBench={handleAutoBench}
                   onRollTransfer={handleRollTransfer}
                 />
+                <InFormCard />
+                <BandwagonsCard />
                 <InjuriesSuspensionsCard injuries={mockInjuriesSuspensions} />
                 <FixturesSnapshot fixtures={mockFixturesSnapshot} />
               </div>
@@ -311,17 +359,19 @@ const CommandCenterPage = () => {
                   <SandboxCharts squad={sandboxSquad} />
                 </div>
 
-                {/* Right - Models, Chat, Videos */}
+                {/* Right - Models, Chat */}
                 <div className="lg:col-span-1 flex flex-col gap-6">
                   <ModelComparisonPanel models={mockModelSources} />
                   <AskCopilotChat />
-                  <VideoInsightsCard videos={mockVideoInsights} />
                 </div>
               </div>
             </div>
           )}
         </div>
       </div>
+
+      {/* Gameweek Videos - Bottom Strip */}
+      <VideoInsightsStrip videos={mockVideoInsights} />
     </div>
   );
 };
