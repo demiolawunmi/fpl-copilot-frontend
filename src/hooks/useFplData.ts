@@ -74,7 +74,7 @@ export interface FplData {
   bootstrap: FplBootstrapFull | null;
 }
 
-export function useFplData(teamId: string | null): FplData {
+export function useFplData(teamId: string | null, gwOverride?: number): FplData {
   const [state, setState] = useState<FplData>({
     loading: true,
     error: null,
@@ -105,18 +105,20 @@ export function useFplData(teamId: string | null): FplData {
         // 2. Find current GW
         const currentEvent = bootstrap.events.find((e) => e.is_current) ??
           bootstrap.events.filter((e) => e.finished).pop();
-        const gw = currentEvent?.id ?? 1;
+        const currentGW = currentEvent?.id ?? 1;
+        const selectedGW = gwOverride ?? currentGW;
+        const selectedEvent = bootstrap.events.find((e) => e.id === selectedGW) ?? currentEvent;
 
         // 3. Entry info
         const entry = await getEntry(id);
 
-        // 4. Picks for current GW
-        const picks = await getPicks(id, gw);
+        // 4. Picks for selected GW
+        const picks = await getPicks(id, selectedGW);
 
         // 5. Live event (points)
         let liveData: FplLiveEvent | null = null;
         try {
-          liveData = await fetchJson<FplLiveEvent>(fplEndpoints.liveEvent(gw));
+          liveData = await fetchJson<FplLiveEvent>(fplEndpoints.liveEvent(selectedGW));
         } catch {
           // live data may not be available yet
         }
@@ -129,10 +131,10 @@ export function useFplData(teamId: string | null): FplData {
           // history may fail
         }
 
-        // 7. Fixtures for current GW
+        // 7. Fixtures for selected GW
         let rawFixtures: FplFixture[] = [];
         try {
-          rawFixtures = await fetchJson<FplFixture[]>(fplEndpoints.fixtures(gw));
+          rawFixtures = await fetchJson<FplFixture[]>(fplEndpoints.fixtures(selectedGW));
         } catch {
           // fixtures may fail
         }
@@ -158,21 +160,22 @@ export function useFplData(teamId: string | null): FplData {
           isCaptain: p.isCaptain,
           isViceCaptain: p.isViceCaptain,
           isBench: p.isBench,
+          photoUrl: p.photoUrl,
         }));
 
         // GW info
         const gwInfo: GWInfo = {
-          gameweek: gw,
+          gameweek: selectedGW,
           teamName: entry.name,
           manager: `${entry.player_first_name} ${entry.player_last_name}`,
           teamId: id,
         };
 
         // Stats
-        const gwHistory = historyData?.current.find((h) => h.event === gw);
+        const gwHistory = historyData?.current.find((h) => h.event === selectedGW);
         const stats: GWStats = {
-          average: currentEvent?.average_entry_score ?? 0,
-          highest: currentEvent?.highest_score ?? 0,
+          average: selectedEvent?.average_entry_score ?? 0,
+          highest: selectedEvent?.highest_score ?? 0,
           gwPoints: gwHistory?.points ?? squad.reduce((sum, p) => {
             const pts = p.isCaptain ? p.points * 2 : p.points;
             return p.isBench ? sum : sum + pts;
@@ -200,12 +203,15 @@ export function useFplData(teamId: string | null): FplData {
 
           return {
             date: dateStr,
+            dateISO: f.kickoff_time ?? undefined,
             homeTeam: home?.name ?? 'Unknown',
             homeAbbr,
             homeColor: TEAM_COLORS[homeAbbr] ?? '#666',
+            homeBadge: home?.code ? fplEndpoints.teamBadge(home.code, 't40') : undefined,
             awayTeam: away?.name ?? 'Unknown',
             awayAbbr,
             awayColor: TEAM_COLORS[awayAbbr] ?? '#666',
+            awayBadge: away?.code ? fplEndpoints.teamBadge(away.code, 't40') : undefined,
             homeScore: f.team_h_score ?? 0,
             awayScore: f.team_a_score ?? 0,
           };
@@ -218,7 +224,7 @@ export function useFplData(teamId: string | null): FplData {
           stats,
           squad,
           fixtures,
-          currentGW: gw,
+          currentGW,
           bootstrap,
         });
       } catch (err: unknown) {
@@ -238,14 +244,7 @@ export function useFplData(teamId: string | null): FplData {
     return () => {
       cancelled = true;
     };
-  }, [teamId]);
+  }, [teamId, gwOverride]);
 
   return state;
 }
-
-
-
-
-
-
-

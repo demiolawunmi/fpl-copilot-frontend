@@ -22,6 +22,7 @@ export interface Player {
   isCaptain?: boolean;
   isViceCaptain?: boolean;
   isBench?: boolean;
+  photoUrl?: string;
 }
 
 export interface Fixture {
@@ -30,9 +31,11 @@ export interface Fixture {
   homeTeam: string;
   homeAbbr: string;
   homeColor: string;
+  homeBadge?: string;
   awayTeam: string;
   awayAbbr: string;
   awayColor: string;
+  awayBadge?: string;
   homeScore: number;
   awayScore: number;
 }

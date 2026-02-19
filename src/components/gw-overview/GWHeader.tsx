@@ -3,13 +3,19 @@ import type { GWInfo } from '../../data/gwOverviewMocks';
 
 interface Props {
   info: GWInfo;
+  onPrev?: () => void;
+  onNext?: () => void;
+  disablePrev?: boolean;
+  disableNext?: boolean;
 }
 
-const GWHeader = ({ info }: Props) => (
+const GWHeader = ({ info, onPrev, onNext, disablePrev, disableNext }: Props) => (
   <div className="flex items-center justify-between">
     <button
-      disabled
-      className="rounded-lg bg-slate-800 p-2 text-slate-500 cursor-not-allowed"
+      disabled={disablePrev}
+      onClick={onPrev}
+      className={`rounded-lg p-2 ${disablePrev ? 'bg-slate-800 text-slate-500 cursor-not-allowed' : 'bg-slate-800 text-white hover:bg-slate-700 transition'}`}
+      aria-label="Previous gameweek"
     >
       <FiChevronLeft size={20} />
     </button>
@@ -22,8 +28,10 @@ const GWHeader = ({ info }: Props) => (
     </div>
 
     <button
-      disabled
-      className="rounded-lg bg-slate-800 p-2 text-slate-500 cursor-not-allowed"
+      disabled={disableNext}
+      onClick={onNext}
+      className={`rounded-lg p-2 ${disableNext ? 'bg-slate-800 text-slate-500 cursor-not-allowed' : 'bg-slate-800 text-white hover:bg-slate-700 transition'}`}
+      aria-label="Next gameweek"
     >
       <FiChevronRight size={20} />
     </button>

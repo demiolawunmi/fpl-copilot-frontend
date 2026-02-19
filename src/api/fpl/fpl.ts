@@ -21,6 +21,7 @@ export type FplBootstrap = {
     }>;
     teams: Array<{
         id: number;
+        code: number;         // universal team code (use for badge URL)
         name: string;
         short_name: string;
     }>;

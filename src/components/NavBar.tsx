@@ -1,6 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTeamId } from '../context/TeamIdContext';
-import type { GWInfo } from '../../data/gwOverviewMocks';
 
 interface NavbarProps {
   teamName?: string | null;

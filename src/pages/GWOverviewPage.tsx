@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useMemo } from 'react';
 import GWHeader from '../components/gw-overview/GWHeader';
 import StatsStrip from '../components/gw-overview/StatsStrip';
 import PitchCard from '../components/gw-overview/PitchCard';
@@ -22,7 +22,8 @@ import { useFplData } from '../hooks/useFplData';
 
 const GWOverviewPage = () => {
   const { teamId } = useTeamId();
-  const fpl = useFplData(teamId);
+  const [selectedGW, setSelectedGW] = useState<number | null>(null);
+  const fpl = useFplData(teamId, selectedGW ?? undefined);
 
   // Use live data when available, fall back to mocks
   const gwInfo = fpl.gwInfo ?? mockGWInfo;
@@ -30,23 +31,43 @@ const GWOverviewPage = () => {
   const squad = fpl.squad.length > 0 ? fpl.squad : mockSquad;
   const fixtures = fpl.fixtures.length > 0 ? fpl.fixtures : mockFixtures;
 
+  // Initialize selected GW to current GW once available
+  useEffect(() => {
+    if (selectedGW == null && fpl.currentGW > 0) {
+      setSelectedGW(fpl.currentGW);
+    }
+  }, [selectedGW, fpl.currentGW]);
+
+  const { minGW, maxGW } = useMemo(() => {
+    const ids = fpl.bootstrap?.events?.map((e) => e.id) ?? [];
+    if (!ids.length) {
+      return { minGW: 1, maxGW: fpl.currentGW || 1 };
+    }
+    const min = Math.min(...ids);
+    const max = fpl.currentGW || Math.max(...ids);
+    return { minGW: min, maxGW: max };
+  }, [fpl.bootstrap, fpl.currentGW]);
+
+  const currentSelected = selectedGW ?? (fpl.currentGW || minGW);
+  const disablePrev = currentSelected <= minGW;
+  const disableNext = currentSelected >= maxGW;
+
+  const handlePrev = () => {
+    if (disablePrev) return;
+    setSelectedGW((gw) => (gw ?? (fpl.currentGW || minGW)) - 1);
+  };
+
+  const handleNext = () => {
+    if (disableNext) return;
+    setSelectedGW((gw) => (gw ?? (fpl.currentGW || minGW)) + 1);
+  };
+
   // Measure GWHeader height and pass to right-column cards so their bottoms align with pitch
-  const headerRef = useRef<HTMLDivElement | null>(null);
   const pitchRef = useRef<HTMLDivElement | null>(null);
   const fixturesTopRef = useRef<HTMLDivElement | null>(null);
   const aiSummaryRef = useRef<HTMLDivElement | null>(null);
-  const [headerHeight, setHeaderHeight] = useState<number>(0);
   const [fixturesHeight, setFixturesHeight] = useState<number | undefined>(undefined);
   const [recommendedHeight, setRecommendedHeight] = useState<number | undefined>(undefined);
-
-  useEffect(() => {
-    function update() {
-      if (headerRef.current) setHeaderHeight(headerRef.current.offsetHeight);
-    }
-    update();
-    window.addEventListener('resize', update);
-    return () => window.removeEventListener('resize', update);
-  }, [gwInfo]);
 
   useEffect(() => {
     const update = () => {
@@ -101,10 +122,14 @@ const GWOverviewPage = () => {
         </div>
       )}
 
-      {/* Header: measure this wrapper */}
-      <div ref={headerRef}>
-        <GWHeader info={gwInfo} />
-      </div>
+      {/* Header */}
+      <GWHeader
+        info={gwInfo}
+        onPrev={handlePrev}
+        onNext={handleNext}
+        disablePrev={disablePrev}
+        disableNext={disableNext}
+      />
 
       {/* Main 2-column layout */}
       <div className="grid grid-cols-3 gap-6">
@@ -122,7 +147,11 @@ const GWOverviewPage = () => {
         {/* Right column — fixtures + recommended transfers */}
         <div className="col-span-1 flex flex-col gap-6">
           <div ref={fixturesTopRef}>
-            <FixturesCard fixtures={fixtures} heightPx={fixturesHeight} />
+            <FixturesCard
+              fixtures={fixtures}
+              heightPx={fixturesHeight}
+              isCurrentGw={currentSelected === fpl.currentGW}
+            />
           </div>
           <RecommendedTransfersCard
             transfers={mockRecommendedTransfers}

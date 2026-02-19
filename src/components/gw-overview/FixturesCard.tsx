@@ -10,15 +10,23 @@ interface Props {
 
 type Order = "newest" | "oldest";
 
-/* ── team badge (colored circle + abbreviation) ── */
-const Badge = ({ abbr, color }: { abbr: string; color: string }) => (
-  <div
-    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white"
-    style={{ backgroundColor: color }}
-  >
-    {abbr}
-  </div>
-);
+/* ── team badge (real image or fallback colored circle) ── */
+const Badge = ({ abbr, color, badge }: { abbr: string; color: string; badge?: string }) =>
+  badge ? (
+    <img
+      src={badge}
+      alt={abbr}
+      className="h-8 w-8 shrink-0 object-contain"
+      loading="lazy"
+    />
+  ) : (
+    <div
+      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white"
+      style={{ backgroundColor: color }}
+    >
+      {abbr}
+    </div>
+  );
 
 function toTime(f: Fixture) {
   // Prefer dateISO if you add it; fallback to Date.parse(date) if not.
@@ -112,7 +120,7 @@ export default function FixturesCard({ fixtures, isCurrentGw = true, heightPx }:
                   className="flex items-center gap-3 px-5 py-3 border-b border-slate-800/60 last:border-b-0 hover:bg-slate-800/40 transition"
                 >
                   {/* home */}
-                  <Badge abbr={m.homeAbbr} color={m.homeColor} />
+                  <Badge abbr={m.homeAbbr} color={m.homeColor} badge={m.homeBadge} />
                   <span className="w-20 truncate text-sm text-slate-300 text-right">{m.homeTeam}</span>
 
                   {/* score */}
@@ -122,7 +130,7 @@ export default function FixturesCard({ fixtures, isCurrentGw = true, heightPx }:
 
                   {/* away */}
                   <span className="w-20 truncate text-sm text-slate-300">{m.awayTeam}</span>
-                  <Badge abbr={m.awayAbbr} color={m.awayColor} />
+                  <Badge abbr={m.awayAbbr} color={m.awayColor} badge={m.awayBadge} />
 
                   {/* chevron */}
                   <FiChevronRight className="ml-auto text-slate-600" size={16} />
