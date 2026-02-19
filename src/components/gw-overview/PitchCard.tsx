@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { Player } from '../../data/gwOverviewMocks';
+import { getDifficultyColor } from '../../utils/difficulty';
 
 interface Props {
   squad: Player[];
@@ -118,9 +119,10 @@ const PlayerChip = ({ player }: { player: Player }) => (
           player.chipDifficulty !== undefined 
             ? (() => {
                 // Use difficulty-based coloring
-                if (player.chipDifficulty <= 2) {
+                const color = getDifficultyColor(player.chipDifficulty);
+                if (color === 'emerald') {
                   return 'bg-emerald-500/20 border-emerald-500/25 text-emerald-400';
-                } else if (player.chipDifficulty === 3) {
+                } else if (color === 'yellow') {
                   return 'bg-yellow-500/20 border-yellow-500/25 text-yellow-400';
                 } else {
                   return 'bg-rose-500/20 border-rose-500/25 text-rose-400';

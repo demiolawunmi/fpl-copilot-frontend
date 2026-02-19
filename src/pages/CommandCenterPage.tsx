@@ -262,11 +262,11 @@ const CommandCenterPage = () => {
                       let chipDifficulty = undefined;
                       
                       if (firstFixture) {
-                        const difficulty = getOpponentDifficulty(
+                        const calculatedDifficulty = getOpponentDifficulty(
                           firstFixture.opponent_short,
                           firstFixture.difficulty
                         );
-                        chipDifficulty = difficulty;
+                        chipDifficulty = calculatedDifficulty;
                         
                         // Format opponent display
                         const opponentStr = `${firstFixture.is_home ? 'H' : 'A'} ${firstFixture.opponent_short}`;
