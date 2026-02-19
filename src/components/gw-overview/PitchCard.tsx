@@ -113,8 +113,23 @@ const PlayerChip = ({ player }: { player: Player }) => (
       </div>
 
       {/* Points / label box */}
-      <div className={`w-full ${CHIP.ptsPx} ${CHIP.ptsPy} bg-emerald-500/20 border border-emerald-500/25 ${CHIP.ptsRadius} rounded-t-none`}>
-        <span className={`block text-center ${CHIP.ptsFontSize} font-bold text-emerald-400`}>
+      <div 
+        className={`w-full ${CHIP.ptsPx} ${CHIP.ptsPy} border ${CHIP.ptsRadius} rounded-t-none ${
+          player.chipDifficulty !== undefined 
+            ? (() => {
+                // Use difficulty-based coloring
+                if (player.chipDifficulty <= 2) {
+                  return 'bg-emerald-500/20 border-emerald-500/25 text-emerald-400';
+                } else if (player.chipDifficulty === 3) {
+                  return 'bg-yellow-500/20 border-yellow-500/25 text-yellow-400';
+                } else {
+                  return 'bg-rose-500/20 border-rose-500/25 text-rose-400';
+                }
+              })()
+            : 'bg-emerald-500/20 border-emerald-500/25 text-emerald-400'
+        }`}
+      >
+        <span className={`block text-center ${CHIP.ptsFontSize} font-bold`}>
           {player.chipLabel ?? (player.isCaptain ? player.points * 2 : player.points)}
         </span>
       </div>
