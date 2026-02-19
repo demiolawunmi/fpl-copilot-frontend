@@ -31,15 +31,15 @@ interface UseFplDataResult {
  * This manually sums up player points, accounting for multipliers and bench boost
  */
 function calculateManualGWPoints(players: Player[], benchBoostActive: boolean): number {
-  const starters = players.filter(p => !p.isBench);
-  const bench = players.filter(p => p.isBench);
+  const starterPlayers = players.filter(p => !p.isBench);
+  const benchPlayers = players.filter(p => p.isBench);
   
   // Calculate starter points (with multiplier for captain)
-  let total = starters.reduce((sum, p) => sum + (p.actualPoints * p.multiplier), 0);
+  let total = starterPlayers.reduce((sum, p) => sum + (p.actualPoints * p.multiplier), 0);
   
   // If bench boost is active, add bench points
   if (benchBoostActive) {
-    total += bench.reduce((sum, p) => sum + p.actualPoints, 0);
+    total += benchPlayers.reduce((sum, p) => sum + p.actualPoints, 0);
   }
   
   return total;
