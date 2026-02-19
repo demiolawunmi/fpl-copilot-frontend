@@ -1,16 +1,6 @@
 import { useState, useEffect } from 'react';
 import { fplClient } from '../api/fpl/client';
 import type {
-  BootstrapStatic,
-  EntryInfo,
-  EntryHistory,
-  EntryPicks,
-  LiveGameweek,
-  Fixture,
-  FPLElement,
-  FPLTeam,
-} from '../api/fpl/fpl';
-import type {
   GWInfo,
   GWStats,
   Player,
