@@ -16,6 +16,7 @@ const StatusStrip = ({ status }: Props) => {
   const now = new Date();
   const hoursRemaining = Math.max(0, Math.floor((deadline.getTime() - now.getTime()) / (1000 * 60 * 60)));
   const daysRemaining = Math.floor(hoursRemaining / 24);
+  const deadlinePassed = deadline < now;
 
   return (
     <div className="rounded-2xl bg-slate-900 border border-slate-800 px-5 py-4">
@@ -64,8 +65,12 @@ const StatusStrip = ({ status }: Props) => {
         {/* Deadline Countdown */}
         <div className="flex items-center gap-2 ml-auto">
           <span className="text-xs text-slate-500 uppercase tracking-wide">Deadline</span>
-          <span className="text-base font-bold text-yellow-400">
-            {daysRemaining > 0 ? `${daysRemaining}d ${hoursRemaining % 24}h` : `${hoursRemaining}h`}
+          <span className={`text-base font-bold ${deadlinePassed ? 'text-red-400' : 'text-yellow-400'}`}>
+            {deadlinePassed
+              ? 'Passed'
+              : daysRemaining > 0
+              ? `${daysRemaining}d ${hoursRemaining % 24}h`
+              : `${hoursRemaining}h`}
           </span>
         </div>
       </div>
