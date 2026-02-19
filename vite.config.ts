@@ -14,6 +14,10 @@ export default defineConfig({
   ],
   server: {
     proxy: {
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
       '/fpl-api': {
         target: 'https://fantasy.premierleague.com',
         changeOrigin: true,

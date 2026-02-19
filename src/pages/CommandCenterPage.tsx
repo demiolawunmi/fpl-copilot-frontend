@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useTeamId } from '../context/TeamIdContext';
 import {
   mockTeamStatus,
@@ -10,11 +10,10 @@ import {
   mockVideoInsights,
   mockEnhancedSquad,
 } from '../data/commandCenterMocks';
-import type { EnhancedPlayer, SandboxAction } from '../data/commandCenterMocks';
+import type { EnhancedPlayer, SandboxAction, TeamStatus } from '../data/commandCenterMocks';
 
-// Import components (to be created)
+// Import components
 import StatusStrip from '../components/command-center/StatusStrip';
-// Use shared PitchCard from gw-overview (more feature-rich)
 import PitchCard from '../components/gw-overview/PitchCard';
 import AICommandSummary from '../components/command-center/AICommandSummary';
 import InjuriesSuspensionsCard from '../components/command-center/InjuriesSuspensionsCard';
@@ -29,20 +28,20 @@ import SandboxCharts from '../components/command-center/SandboxCharts';
 import AskCopilotChat from '../components/command-center/AskCopilotChat';
 import VideoInsightsCard from '../components/command-center/VideoInsightsCard';
 
-// FPL data hook
-import { useFplData } from '../hooks/useFplData';
+// Command Center hook – targets the NEXT GW and uses /api/fpl/my-team picks
+import { useCommandCenterData } from '../hooks/useCommandCenterData';
 import type { Player as UiPlayer } from '../data/gwOverviewMocks';
 
 type Tab = 'pick-team' | 'sandbox';
 
 const mapUiPlayerToEnhanced = (p: UiPlayer): EnhancedPlayer => ({
-  id: (p as any).id ?? 0,
+  id: p.id ?? 0,
   name: p.name,
   position: p.position,
   team: '',
   teamAbbr: p.teamAbbr ?? '',
-  price: 0,
-  xPts: (p as any).xPts ?? (p.points ?? 0),
+  price: p.sellingPrice ? p.sellingPrice / 10 : 0,
+  xPts: p.points ?? 0,
   points: p.points ?? 0,
   minutesRisk: 'Unknown',
   injuryStatus: 'Available',
@@ -57,8 +56,8 @@ const CommandCenterPage = () => {
   const { teamId } = useTeamId();
   const [activeTab, setActiveTab] = useState<Tab>('pick-team');
 
-  // FPL hook
-  const fpl = useFplData(teamId);
+  // Dedicated Command Center hook – always targets next GW, uses backend picks
+  const cc = useCommandCenterData(teamId);
 
   // State for sandbox
   const [realSquad, setRealSquad] = useState<EnhancedPlayer[]>(mockEnhancedSquad);
@@ -66,17 +65,60 @@ const CommandCenterPage = () => {
   const [sandboxActions, setSandboxActions] = useState<SandboxAction[]>([]);
   const [sandboxMode, setSandboxMode] = useState(false);
 
+  // When backend squad arrives, replace mock data
   useEffect(() => {
-    // When FPL data arrives, initialize squads from it
-    if (!fpl.loading && fpl.error == null && fpl.squad.length > 0) {
-      const enhanced = fpl.squad.map((p) => mapUiPlayerToEnhanced(p as UiPlayer));
+    if (!cc.loading && cc.error == null && cc.squad.length > 0) {
+      const enhanced = cc.squad.map((p) => mapUiPlayerToEnhanced(p as UiPlayer));
       setRealSquad(enhanced);
       setSandboxSquad(enhanced.map((e) => ({ ...e })));
     }
-  }, [fpl.loading, fpl.error, fpl.squad]);
+  }, [cc.loading, cc.error, cc.squad]);
 
-  const teamStatus = mockTeamStatus;
-  const teamName = fpl.gwInfo?.teamName ?? 'Haaland FC';
+  const teamStatus: TeamStatus = useMemo(() => {
+    const mt = cc.myTeam;
+    if (!mt) return mockTeamStatus;
+
+    // Map chip names from backend ("3xc" → "tcaptain") and build chip status
+    const chipMap: Record<string, keyof TeamStatus['chips']> = {
+      wildcard: 'wildcard',
+      freehit: 'freehit',
+      bboost: 'bboost',
+      '3xc': 'tcaptain',
+    };
+
+    const chips: TeamStatus['chips'] = {
+      wildcard: { available: false },
+      freehit: { available: false },
+      bboost: { available: false },
+      tcaptain: { available: false },
+    };
+
+    for (const c of mt.chips) {
+      const key = chipMap[c.name];
+      if (!key) continue;
+      const isAvailable = c.status_for_entry === 'available' && !c.is_pending;
+      const usedGW = c.played_by_entry.length > 0 ? `GW ${c.played_by_entry[0]}` : undefined;
+      chips[key] = { available: isAvailable, used: usedGW };
+    }
+
+    // Next event deadline
+    const nextEvent = cc.bootstrap?.events.find((e) => e.is_next);
+    const deadline = nextEvent?.deadline_time ?? mockTeamStatus.deadline;
+
+    // Free transfers = limit - made (minimum 0)
+    const freeTransfers = Math.max(0, mt.transfers.limit - mt.transfers.made);
+
+    return {
+      freeTransfers,
+      bank: mt.transfers.bank / 10,       // tenths → millions
+      teamValue: mt.transfers.value / 10,  // tenths → millions
+      chips,
+      deadline,
+    };
+  }, [cc.myTeam, cc.bootstrap]);
+
+  const nextGW = cc.nextGW;
+  const teamName = cc.gwInfo?.teamName ?? 'My Team';
 
   // Sandbox handlers
   const handleUndo = () => {
@@ -157,7 +199,7 @@ const CommandCenterPage = () => {
       <div className="flex flex-col gap-2">
         <h1 className="text-2xl sm:text-3xl font-bold text-white">Command Center</h1>
         <p className="text-sm text-slate-400">
-          Gameweek {fpl.gwInfo?.gameweek ?? mockCommandCenterAISummary.gameweek} • Team: {teamName} • ID: {teamId}
+          Gameweek {nextGW || '…'} • Team: {teamName} • ID: {teamId}
         </p>
       </div>
 
@@ -178,7 +220,7 @@ const CommandCenterPage = () => {
                     : 'text-slate-400 hover:text-white'
                 }`}
             >
-              {tab === 'pick-team' ? `Pick Team (GW ${fpl.gwInfo?.gameweek ?? mockCommandCenterAISummary.gameweek})` : 'AI Sandbox'}
+              {tab === 'pick-team' ? `Pick Team (GW ${nextGW || '…'})` : 'AI Sandbox'}
             </button>
           ))}
         </div>
@@ -189,10 +231,10 @@ const CommandCenterPage = () => {
             <div className="flex flex-col lg:grid lg:grid-cols-3 gap-6">
               {/* Left column - Pitch */}
               <div className="lg:col-span-2 flex flex-col gap-6">
-                {fpl.loading ? (
+                {cc.loading ? (
                   <div className="rounded-2xl bg-slate-900 border border-slate-800 p-6 text-center text-slate-400">Loading squad...</div>
-                ) : fpl.error ? (
-                  <div className="rounded-2xl bg-rose-900/10 border border-rose-800 p-6 text-center text-rose-400">{fpl.error}</div>
+                ) : cc.error ? (
+                  <div className="rounded-2xl bg-rose-900/10 border border-rose-800 p-6 text-center text-rose-400">{cc.error}</div>
                 ) : (
                   <PitchCard
                     squad={sandboxSquad.map((p) => ({
@@ -249,10 +291,10 @@ const CommandCenterPage = () => {
                     onApplyTransfer={handleTransfer}
                   />
                   <CustomTransferBuilder onTransfer={handleTransfer} />
-                  {fpl.loading ? (
+                  {cc.loading ? (
                     <div className="rounded-2xl bg-slate-900 border border-slate-800 p-6 text-center text-slate-400">Loading squad...</div>
-                  ) : fpl.error ? (
-                    <div className="rounded-2xl bg-rose-900/10 border border-rose-800 p-6 text-center text-rose-400">{fpl.error}</div>
+                  ) : cc.error ? (
+                    <div className="rounded-2xl bg-rose-900/10 border border-rose-800 p-6 text-center text-rose-400">{cc.error}</div>
                   ) : (
                     <PitchCard
                       squad={sandboxSquad.map((p) => ({

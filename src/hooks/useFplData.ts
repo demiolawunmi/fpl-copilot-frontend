@@ -8,6 +8,7 @@ import {
 } from '../api/fpl/fpl';
 import { fetchJson } from '../api/fpl/client';
 import { fplEndpoints } from '../api/fpl/endpoints';
+import { getMyTeam, type MyTeamResponse } from '../api/backend';
 import type { GWInfo, GWStats, Player, Fixture } from '../data/gwOverviewMocks';
 
 // ── Live event type (points per player) ──
@@ -36,6 +37,7 @@ type FplBootstrapEvent = {
   finished: boolean;
   is_current: boolean;
   is_next: boolean;
+  deadline_time?: string;
 };
 
 type FplBootstrapFull = FplBootstrap & {
@@ -72,6 +74,7 @@ export interface FplData {
   fixtures: Fixture[];
   currentGW: number;
   bootstrap: FplBootstrapFull | null;
+  myTeam: MyTeamResponse | null;
 }
 
 export function useFplData(teamId: string | null, gwOverride?: number): FplData {
@@ -84,6 +87,7 @@ export function useFplData(teamId: string | null, gwOverride?: number): FplData 
     fixtures: [],
     currentGW: 0,
     bootstrap: null,
+    myTeam: null,
   });
 
   useEffect(() => {
@@ -101,6 +105,14 @@ export function useFplData(teamId: string | null, gwOverride?: number): FplData 
       try {
         // 1. Bootstrap (contains players, teams, events)
         const bootstrap = (await getBootstrap()) as FplBootstrapFull;
+
+        // 1b. My-team from our backend (picks, chips, transfers)
+        let myTeam: MyTeamResponse | null = null;
+        try {
+          myTeam = await getMyTeam();
+        } catch {
+          // backend may not be running – fall back gracefully
+        }
 
         // 2. Find current GW
         const currentEvent = bootstrap.events.find((e) => e.is_current) ??
@@ -154,6 +166,11 @@ export function useFplData(teamId: string | null, gwOverride?: number): FplData 
         // Build squad from picks + bootstrap
         const uiSquad = buildUiSquadFromPicks(picks, bootstrap);
 
+        // Build a price lookup from my-team response (element → pick data)
+        const myTeamByElement = new Map(
+          myTeam?.picks.map((p) => [p.element, p]) ?? []
+        );
+
         // Build team lookups
         const teamsById = new Map(bootstrap.teams.map((t) => [t.id, t]));
         const teamAbbrById = new Map(bootstrap.teams.map((t) => [t.id, t.short_name]));
@@ -170,17 +187,24 @@ export function useFplData(teamId: string | null, gwOverride?: number): FplData 
           opponentsByTeam.set(f.team_a, (opponentsByTeam.get(f.team_a) ?? []).concat(awayOpp));
         }
 
-        const squad: Player[] = uiSquad.map((p) => ({
-          name: p.name,
-          position: p.position,
-          points: pointsById.get(p.id) ?? 0,
-          isCaptain: p.isCaptain,
-          isViceCaptain: p.isViceCaptain,
-          isBench: p.isBench,
-          photoUrl: p.photoUrl,
-          teamAbbr: p.teamAbbr ?? (p.teamId ? teamAbbrById.get(p.teamId) : undefined),
-          opponents: p.teamId ? opponentsByTeam.get(p.teamId) ?? [] : [],
-        }));
+        const squad: Player[] = uiSquad.map((p) => {
+          const mtPick = myTeamByElement.get(p.id);
+          return {
+            id: p.id,
+            name: p.name,
+            position: p.position,
+            points: pointsById.get(p.id) ?? 0,
+            isCaptain: p.isCaptain,
+            isViceCaptain: p.isViceCaptain,
+            isBench: p.isBench,
+            photoUrl: p.photoUrl,
+            teamAbbr: p.teamAbbr ?? (p.teamId ? teamAbbrById.get(p.teamId) : undefined),
+            opponents: p.teamId ? opponentsByTeam.get(p.teamId) ?? [] : [],
+            sellingPrice: mtPick?.selling_price,
+            purchasePrice: mtPick?.purchase_price,
+            elementType: mtPick?.element_type,
+          };
+        });
 
         // GW info
         const gwInfo: GWInfo = {
@@ -243,6 +267,7 @@ export function useFplData(teamId: string | null, gwOverride?: number): FplData 
           fixtures,
           currentGW,
           bootstrap,
+          myTeam,
         });
       } catch (err: unknown) {
         if (!cancelled) {

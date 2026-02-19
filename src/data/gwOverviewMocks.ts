@@ -26,6 +26,10 @@ export interface Player {
   teamAbbr?: string;   // player's club short name (e.g. 'ARS')
   opponents?: string[]; // opponent abbreviations for the selected GW (e.g. ['ARS'] or ['ARS','BRE'])
   chipLabel?: string;   // optional label to show on the chip instead of points
+  id?: number;              // FPL element id
+  sellingPrice?: number;    // in tenths (e.g. 50 = £5.0m)
+  purchasePrice?: number;   // in tenths
+  elementType?: number;     // 1-4
 }
 
 export interface Fixture {
