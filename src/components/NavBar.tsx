@@ -1,6 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTeamId } from '../context/TeamIdContext';
-import type { GWInfo } from '../../data/gwOverviewMocks';
 
 interface NavbarProps {
   teamName?: string | null;
@@ -9,6 +8,7 @@ interface NavbarProps {
 const navLinks = [
   { to: '/', label: 'Home' },
   { to: '/gw-overview', label: 'GW Overview' },
+  { to: '/command-center', label: 'Command Center' },
   { to: '/players', label: 'Players' },
   { to: '/fixtures', label: 'Fixtures' },
 ];

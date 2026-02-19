@@ -35,18 +35,8 @@ const GWOverviewPage = () => {
   const pitchRef = useRef<HTMLDivElement | null>(null);
   const fixturesTopRef = useRef<HTMLDivElement | null>(null);
   const aiSummaryRef = useRef<HTMLDivElement | null>(null);
-  const [headerHeight, setHeaderHeight] = useState<number>(0);
   const [fixturesHeight, setFixturesHeight] = useState<number | undefined>(undefined);
   const [recommendedHeight, setRecommendedHeight] = useState<number | undefined>(undefined);
-
-  useEffect(() => {
-    function update() {
-      if (headerRef.current) setHeaderHeight(headerRef.current.offsetHeight);
-    }
-    update();
-    window.addEventListener('resize', update);
-    return () => window.removeEventListener('resize', update);
-  }, [gwInfo]);
 
   useEffect(() => {
     const update = () => {
