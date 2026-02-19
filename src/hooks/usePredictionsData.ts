@@ -43,8 +43,8 @@ export function usePredictionsData(gw: number | null): PredictionsData {
       try {
         // Fetch predictions and fixtures in parallel
         const [predictionsData, fixturesData] = await Promise.all([
-          getPredictions(gw).catch(() => [] as PredictionPlayer[]),
-          getFixturesByPlayer(gw).catch(() => [] as PlayerFixture[]),
+          getPredictions(gw as number).catch(() => [] as PredictionPlayer[]),
+          getFixturesByPlayer(gw as number).catch(() => [] as PlayerFixture[]),
         ]);
 
         if (cancelled) return;

@@ -26,7 +26,6 @@ import CustomTransferBuilder from '../components/command-center/CustomTransferBu
 import ModelComparisonPanel from '../components/command-center/ModelComparisonPanel';
 import SandboxCharts from '../components/command-center/SandboxCharts';
 import AskCopilotChat from '../components/command-center/AskCopilotChat';
-import VideoInsightsCard from '../components/command-center/VideoInsightsCard';
 import VideoInsightsStrip from '../components/command-center/VideoInsightsStrip';
 
 // Command Center hook – targets the NEXT GW and uses /api/fpl/my-team picks
@@ -35,7 +34,7 @@ import { usePredictionsData } from '../hooks/usePredictionsData';
 import type { Player as UiPlayer } from '../data/gwOverviewMocks';
 import InFormCard from '../components/command-center/InFormCard';
 import BandwagonsCard from '../components/command-center/BandwagonsCard';
-import { getOpponentDifficulty, getOpponentBadgeClasses } from '../utils/difficulty';
+import { getOpponentDifficulty } from '../utils/difficulty';
 
 type Tab = 'pick-team' | 'sandbox';
 
