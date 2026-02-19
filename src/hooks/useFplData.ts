@@ -13,10 +13,8 @@ import type {
   GWInfo,
   GWStats,
   BootstrapResponse,
-  EntryResponse,
   PicksResponse,
   LiveResponse,
-  HistoryResponse,
 } from '../types/fpl';
 
 interface UseFplDataResult {
@@ -71,11 +69,14 @@ export function useFplData(teamId: number | null): UseFplDataResult {
         setLoading(true);
         setError(null);
 
+        // teamId is checked above, so it's guaranteed to be non-null here
+        const teamIdNum = teamId!;
+
         // Fetch all required data in parallel
-        const [bootstrap, entry, history] = await Promise.all([
+        const [bootstrap, entry] = await Promise.all([
           getBootstrap(),
-          getEntry(teamId),
-          getEntryHistory(teamId),
+          getEntry(teamIdNum),
+          getEntryHistory(teamIdNum),
         ]);
 
         if (!isMounted) return;
@@ -88,7 +89,7 @@ export function useFplData(teamId: number | null): UseFplDataResult {
 
         // Fetch picks and live data for current gameweek
         const [picks, live] = await Promise.all([
-          getPicks(teamId, currentGW.id),
+          getPicks(teamIdNum, currentGW.id),
           getLive(currentGW.id),
         ]);
 

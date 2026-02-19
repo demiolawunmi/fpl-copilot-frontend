@@ -12,7 +12,7 @@ interface NavbarProps {
   teamName?: string | null;
 }
 
-const Navbar = ({ teamName }: NavbarProps) => {
+const NavBar = ({ teamName }: NavbarProps) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { teamId, clearTeamId } = useTeamId();
@@ -77,4 +77,4 @@ const Navbar = ({ teamName }: NavbarProps) => {
   );
 };
 
-export default Navbar;
+export default NavBar;

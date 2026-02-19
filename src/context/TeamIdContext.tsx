@@ -30,6 +30,7 @@ export const TeamIdProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useTeamId = (): TeamIdContextType => {
   const ctx = useContext(TeamIdContext);
   if (!ctx) throw new Error('useTeamId must be used within TeamIdProvider');

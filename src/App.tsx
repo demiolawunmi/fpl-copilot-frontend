@@ -1,7 +1,7 @@
 import './App.css'
 import { useState, useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
-import Navbar from './components/Navbar';
+import NavBar from './components/NavBar';
 import ProtectedRoute from './components/ProtectedRoute';
 import LoginPage from './pages/LoginPage';
 import HomePage from './pages/HomePage';
@@ -17,22 +17,37 @@ function App() {
 
   // Fetch team name when teamId changes
   useEffect(() => {
-    if (teamId) {
-      getEntry(parseInt(teamId))
-        .then(entry => setTeamName(entry.name))
-        .catch(err => {
-          console.error('Failed to fetch team name:', err);
-          setTeamName(null);
-        });
-    } else {
-      setTeamName(null);
+    if (!teamId) {
+      // Reset team name when logged out
+      // Using a microtask to avoid synchronous setState warning
+      Promise.resolve().then(() => setTeamName(null));
+      return;
     }
+
+    let cancelled = false;
+
+    getEntry(parseInt(teamId))
+      .then(entry => {
+        if (!cancelled) {
+          setTeamName(entry.name);
+        }
+      })
+      .catch(err => {
+        console.error('Failed to fetch team name:', err);
+        if (!cancelled) {
+          setTeamName(null);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [teamId]);
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-950">
       {/* Only show navbar when logged in */}
-      {teamId && <Navbar teamName={teamName} />}
+      {teamId && <NavBar teamName={teamName} />}
 
       <Routes>
         <Route path="/login" element={<LoginPage />} />
