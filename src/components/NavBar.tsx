@@ -8,6 +8,7 @@ interface NavbarProps {
 const navLinks = [
   { to: '/', label: 'Home' },
   { to: '/gw-overview', label: 'GW Overview' },
+  { to: '/command-center', label: 'Command Center' },
   { to: '/players', label: 'Players' },
   { to: '/fixtures', label: 'Fixtures' },
 ];
