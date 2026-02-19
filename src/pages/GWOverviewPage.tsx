@@ -43,18 +43,6 @@ const GWOverviewPage = () => {
     );
   }
 
-  if (error) {
-    return (
-      <div className="flex flex-1 items-center justify-center p-8">
-        <div className="bg-red-900/20 border border-red-400 rounded-lg p-6 max-w-md">
-          <h2 className="text-xl font-bold text-red-400 mb-2">Error Loading Data</h2>
-          <p className="text-slate-300 mb-4">{error}</p>
-          <p className="text-sm text-slate-400">Falling back to mock data for display.</p>
-        </div>
-      </div>
-    );
-  }
-
   // Use live data if available, otherwise fall back to mocks
   const displayGWInfo = gwInfo || mockGWInfo;
   const displayStats = stats || mockStats;
@@ -66,6 +54,14 @@ const GWOverviewPage = () => {
 
   return (
     <div className="flex-1 p-6 space-y-6 overflow-y-auto">
+      {error && (
+        <div className="bg-red-900/20 border border-red-400 rounded-lg p-4">
+          <h3 className="text-sm font-semibold text-red-400 mb-1">Error Loading Live Data</h3>
+          <p className="text-xs text-slate-300">{error}</p>
+          <p className="text-xs text-slate-400 mt-1">Displaying mock data instead.</p>
+        </div>
+      )}
+      
       <GWHeader info={displayGWInfo} />
       
       <StatsStrip
