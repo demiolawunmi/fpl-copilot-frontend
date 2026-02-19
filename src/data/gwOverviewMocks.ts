@@ -26,6 +26,7 @@ export interface Player {
 
 export interface Fixture {
   date: string;
+  dateISO?: string;
   homeTeam: string;
   homeAbbr: string;
   homeColor: string;
@@ -118,7 +119,7 @@ export const mockSquad: Player[] = [
 ];
 
 export const mockFixtures: Fixture[] = [
-  { date: 'Sat 15 Feb', homeTeam: 'Arsenal', homeAbbr: 'ARS', homeColor: '#EF0107', awayTeam: 'Man City', awayAbbr: 'MCI', awayColor: '#6CABDD', homeScore: 2, awayScore: 1 },
+  { date: 'Sat 15 Feb', dateISO: '2026-02-15T15:00:00Z', homeTeam: 'Arsenal', homeAbbr: 'ARS', homeColor: '#EF0107', awayTeam: 'Man City', awayAbbr: 'MCI', awayColor: '#6CABDD', homeScore: 2, awayScore: 1 },
   { date: 'Sat 15 Feb', homeTeam: 'Chelsea', homeAbbr: 'CHE', homeColor: '#034694', awayTeam: 'Liverpool', awayAbbr: 'LIV', awayColor: '#C8102E', homeScore: 1, awayScore: 3 },
   { date: 'Sat 15 Feb', homeTeam: 'Brentford', homeAbbr: 'BRE', homeColor: '#e30613', awayTeam: 'Aston Villa', awayAbbr: 'AVL', awayColor: '#670E36', homeScore: 0, awayScore: 0 },
   { date: 'Sun 16 Feb', homeTeam: 'Newcastle', homeAbbr: 'NEW', homeColor: '#241F20', awayTeam: 'Tottenham', awayAbbr: 'TOT', awayColor: '#132257', homeScore: 3, awayScore: 2 },
@@ -177,5 +178,3 @@ export const mockAISummary: AISummary = {
   ],
   footerHint: "More detail coming (rationale + expand cards).",
 };
-
-

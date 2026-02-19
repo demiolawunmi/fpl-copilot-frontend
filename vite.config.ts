@@ -12,4 +12,13 @@ export default defineConfig({
       },
     }),
   ],
+  server: {
+    proxy: {
+      '/fpl-api': {
+        target: 'https://fantasy.premierleague.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/fpl-api/, '/api'),
+      },
+    },
+  },
 })

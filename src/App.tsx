@@ -8,14 +8,24 @@ import GWOverviewPage from './pages/GWOverviewPage';
 import PlayersPage from './pages/PlayersPage';
 import FixturesPage from './pages/FixturesPage';
 import { useTeamId } from './context/TeamIdContext';
+import { getEntry } from './api/fpl/fpl';
+import { useEffect, useState } from 'react';
 
 function App() {
   const { teamId } = useTeamId();
+  const [teamName, setTeamName] = useState<string | null>(null);
+
+  // Fetch team name on app load (if logged in)
+  useEffect(() => {
+    if (teamId) {
+      getEntry(teamId).then(entry => setTeamName(entry.name));
+    }
+  }, [teamId]);
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-950">
       {/* Only show navbar when logged in */}
-      {teamId && <Navbar />}
+      {teamId && <Navbar teamName={teamName} />}
 
       <Routes>
         <Route path="/login" element={<LoginPage />} />

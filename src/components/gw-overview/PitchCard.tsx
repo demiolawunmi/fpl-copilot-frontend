@@ -106,7 +106,7 @@ const PitchCard = ({ squad }: Props) => {
           }}
         >
           <PitchLines />
-            
+
           {/* Pitch markings overlay */}
           <div className="pointer-events-none absolute inset-3 sm:inset-4 rounded-lg border border-white/10" />
           <div className="pointer-events-none absolute inset-x-3 sm:inset-x-4 top-1/2 h-px bg-white/10" />

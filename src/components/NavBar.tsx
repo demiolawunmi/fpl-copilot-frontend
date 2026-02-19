@@ -1,5 +1,10 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTeamId } from '../context/TeamIdContext';
+import type { GWInfo } from '../../data/gwOverviewMocks';
+
+interface NavbarProps {
+  teamName?: string | null;
+}
 
 const navLinks = [
   { to: '/', label: 'Home' },
@@ -8,7 +13,7 @@ const navLinks = [
   { to: '/fixtures', label: 'Fixtures' },
 ];
 
-const Navbar = () => {
+const Navbar = ({ teamName }: NavbarProps) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { teamId, clearTeamId } = useTeamId();
@@ -51,7 +56,7 @@ const Navbar = () => {
         <div className="flex items-center gap-4">
           {teamId && (
             <span className="rounded-full bg-slate-800 px-3 py-1 text-xs font-mono text-emerald-400 border border-slate-700">
-              ID: {teamId}
+              ID: {teamId} {teamName ? `| ${teamName}` : ''}
             </span>
           )}
           <button

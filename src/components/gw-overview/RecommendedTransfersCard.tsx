@@ -3,6 +3,7 @@ import type { RecommendedTransfer, RecommendedTransferPlayer } from '../../data/
 
 interface Props {
   transfers: RecommendedTransfer[];
+  heightPx?: number; // match AI summary card height
 }
 
 const PlayerInfo = ({
@@ -28,13 +29,16 @@ const PlayerInfo = ({
   </div>
 );
 
-const RecommendedTransfersCard = ({ transfers }: Props) => (
-  <div className="rounded-2xl bg-slate-900 border border-slate-800 overflow-hidden">
+const RecommendedTransfersCard = ({ transfers, heightPx }: Props) => (
+  <div
+    className="rounded-2xl bg-slate-900 border border-slate-800 overflow-hidden flex flex-col"
+    style={heightPx ? { height: `${heightPx}px` } : undefined}
+  >
     <h2 className="px-5 py-4 text-sm font-semibold text-white uppercase tracking-wide border-b border-slate-800">
       Recommended Transfers
     </h2>
 
-    <div className="divide-y divide-slate-800/60">
+    <div className="divide-y divide-slate-800/60 flex-1 overflow-auto">
       {transfers.map((t, i) => (
         <div
           key={i}
