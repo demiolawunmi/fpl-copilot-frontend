@@ -78,13 +78,15 @@ const CommandCenterPage = () => {
   const handleSetCaptain = (playerId: number) => {
     const newSquad = sandboxSquad.map((p) => {
       if (p.id === playerId) {
+        // New captain
         return { ...p, isCaptain: true, isViceCaptain: false };
       } else if (p.isCaptain) {
+        // Old captain becomes vice-captain
         return { ...p, isCaptain: false, isViceCaptain: true };
-      } else if (p.isViceCaptain) {
+      } else {
+        // Everyone else loses vice-captain status
         return { ...p, isViceCaptain: false };
       }
-      return p;
     });
     setSandboxSquad(newSquad);
   };
