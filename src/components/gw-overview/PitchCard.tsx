@@ -112,10 +112,10 @@ const PlayerChip = ({ player }: { player: Player }) => (
         </span>
       </div>
 
-      {/* Points box */}
+      {/* Points / label box */}
       <div className={`w-full ${CHIP.ptsPx} ${CHIP.ptsPy} bg-emerald-500/20 border border-emerald-500/25 ${CHIP.ptsRadius} rounded-t-none`}>
         <span className={`block text-center ${CHIP.ptsFontSize} font-bold text-emerald-400`}>
-          {player.isCaptain ? player.points * 2 : player.points}
+          {player.chipLabel ?? (player.isCaptain ? player.points * 2 : player.points)}
         </span>
       </div>
     </div>

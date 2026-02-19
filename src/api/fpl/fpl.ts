@@ -89,7 +89,9 @@ export type UiPlayer = {
     isViceCaptain?: boolean;
     isBench?: boolean;
     multiplier?: number;
-    photoUrl?: string; // add this if you want to show headshots now
+    photoUrl?: string;
+    teamId?: number;
+    teamAbbr?: string;
 };
 
 /**
@@ -101,6 +103,7 @@ export function buildUiSquadFromPicks(
     bootstrap: FplBootstrap
 ): UiPlayer[] {
     const byId = new Map(bootstrap.elements.map((e) => [e.id, e]));
+    const teamsById = new Map(bootstrap.teams.map((t) => [t.id, t]));
 
     return picks.picks
         .slice()
@@ -110,6 +113,8 @@ export function buildUiSquadFromPicks(
 
             const id = el?.id ?? p.element;
             const code = el?.code ?? 0;
+            const playerTeamId = el?.team;
+            const team = playerTeamId ? teamsById.get(playerTeamId) : undefined;
 
             return {
                 id,
@@ -121,6 +126,8 @@ export function buildUiSquadFromPicks(
                 isBench: p.position > 11,
                 multiplier: p.multiplier,
                 photoUrl: code ? getPlayerPhotoUrl(code, "110x140") : undefined,
+                teamId: playerTeamId,
+                teamAbbr: team?.short_name,
             };
         });
 }

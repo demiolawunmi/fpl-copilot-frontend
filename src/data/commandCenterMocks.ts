@@ -20,6 +20,8 @@ export interface EnhancedPlayer {
   isViceCaptain?: boolean;
   isBench?: boolean;
   ownership?: number;
+  photoUrl?: string; // optional headshot URL for shared pitch components
+  opponents?: string[]; // opponent abbreviations for this GW (e.g. ['ARS'] or ['ARS','BRE'])
 }
 
 export interface TeamStatus {

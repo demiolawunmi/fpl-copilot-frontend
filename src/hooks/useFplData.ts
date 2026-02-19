@@ -153,6 +153,23 @@ export function useFplData(teamId: string | null, gwOverride?: number): FplData 
 
         // Build squad from picks + bootstrap
         const uiSquad = buildUiSquadFromPicks(picks, bootstrap);
+
+        // Build team lookups
+        const teamsById = new Map(bootstrap.teams.map((t) => [t.id, t]));
+        const teamAbbrById = new Map(bootstrap.teams.map((t) => [t.id, t.short_name]));
+
+        // Cross-reference fixtures for this GW: map each team id -> opponent abbreviations
+        // Handles double gameweeks (a team can appear in multiple fixtures)
+        const opponentsByTeam = new Map<number, string[]>();
+        for (const f of rawFixtures) {
+          // Home team's opponent is the away team
+          const homeOpp = teamAbbrById.get(f.team_a) ?? '???';
+          opponentsByTeam.set(f.team_h, (opponentsByTeam.get(f.team_h) ?? []).concat(homeOpp));
+          // Away team's opponent is the home team
+          const awayOpp = teamAbbrById.get(f.team_h) ?? '???';
+          opponentsByTeam.set(f.team_a, (opponentsByTeam.get(f.team_a) ?? []).concat(awayOpp));
+        }
+
         const squad: Player[] = uiSquad.map((p) => ({
           name: p.name,
           position: p.position,
@@ -161,6 +178,8 @@ export function useFplData(teamId: string | null, gwOverride?: number): FplData 
           isViceCaptain: p.isViceCaptain,
           isBench: p.isBench,
           photoUrl: p.photoUrl,
+          teamAbbr: p.teamAbbr ?? (p.teamId ? teamAbbrById.get(p.teamId) : undefined),
+          opponents: p.teamId ? opponentsByTeam.get(p.teamId) ?? [] : [],
         }));
 
         // GW info
@@ -184,8 +203,6 @@ export function useFplData(teamId: string | null, gwOverride?: number): FplData 
           overallRank: gwHistory?.overall_rank ?? 0,
         };
 
-        // Teams lookup
-        const teamsById = new Map(bootstrap.teams.map((t) => [t.id, t]));
 
         // Fixtures
         const fixtures: Fixture[] = rawFixtures.map((f) => {

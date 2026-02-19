@@ -23,6 +23,9 @@ export interface Player {
   isViceCaptain?: boolean;
   isBench?: boolean;
   photoUrl?: string;
+  teamAbbr?: string;   // player's club short name (e.g. 'ARS')
+  opponents?: string[]; // opponent abbreviations for the selected GW (e.g. ['ARS'] or ['ARS','BRE'])
+  chipLabel?: string;   // optional label to show on the chip instead of points
 }
 
 export interface Fixture {

@@ -1,20 +1,21 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTeamId } from '../context/TeamIdContext';
 import {
   mockTeamStatus,
-  mockEnhancedSquad,
   mockCommandCenterAISummary,
   mockInjuriesSuspensions,
   mockFixturesSnapshot,
   mockRecommendedTransfers,
   mockModelSources,
   mockVideoInsights,
+  mockEnhancedSquad,
 } from '../data/commandCenterMocks';
 import type { EnhancedPlayer, SandboxAction } from '../data/commandCenterMocks';
 
 // Import components (to be created)
 import StatusStrip from '../components/command-center/StatusStrip';
-import CommandCenterPitch from '../components/command-center/CommandCenterPitch';
+// Use shared PitchCard from gw-overview (more feature-rich)
+import PitchCard from '../components/gw-overview/PitchCard';
 import AICommandSummary from '../components/command-center/AICommandSummary';
 import InjuriesSuspensionsCard from '../components/command-center/InjuriesSuspensionsCard';
 import FixturesSnapshot from '../components/command-center/FixturesSnapshot';
@@ -28,20 +29,54 @@ import SandboxCharts from '../components/command-center/SandboxCharts';
 import AskCopilotChat from '../components/command-center/AskCopilotChat';
 import VideoInsightsCard from '../components/command-center/VideoInsightsCard';
 
+// FPL data hook
+import { useFplData } from '../hooks/useFplData';
+import type { Player as UiPlayer } from '../data/gwOverviewMocks';
+
 type Tab = 'pick-team' | 'sandbox';
+
+const mapUiPlayerToEnhanced = (p: UiPlayer): EnhancedPlayer => ({
+  id: (p as any).id ?? 0,
+  name: p.name,
+  position: p.position,
+  team: '',
+  teamAbbr: p.teamAbbr ?? '',
+  price: 0,
+  xPts: (p as any).xPts ?? (p.points ?? 0),
+  points: p.points ?? 0,
+  minutesRisk: 'Unknown',
+  injuryStatus: 'Available',
+  isCaptain: p.isCaptain,
+  isViceCaptain: p.isViceCaptain,
+  isBench: p.isBench,
+  photoUrl: p.photoUrl,
+  opponents: p.opponents,
+});
 
 const CommandCenterPage = () => {
   const { teamId } = useTeamId();
   const [activeTab, setActiveTab] = useState<Tab>('pick-team');
 
+  // FPL hook
+  const fpl = useFplData(teamId);
+
   // State for sandbox
-  const [realSquad] = useState<EnhancedPlayer[]>(mockEnhancedSquad);
+  const [realSquad, setRealSquad] = useState<EnhancedPlayer[]>(mockEnhancedSquad);
   const [sandboxSquad, setSandboxSquad] = useState<EnhancedPlayer[]>(mockEnhancedSquad);
   const [sandboxActions, setSandboxActions] = useState<SandboxAction[]>([]);
   const [sandboxMode, setSandboxMode] = useState(false);
 
+  useEffect(() => {
+    // When FPL data arrives, initialize squads from it
+    if (!fpl.loading && fpl.error == null && fpl.squad.length > 0) {
+      const enhanced = fpl.squad.map((p) => mapUiPlayerToEnhanced(p as UiPlayer));
+      setRealSquad(enhanced);
+      setSandboxSquad(enhanced.map((e) => ({ ...e })));
+    }
+  }, [fpl.loading, fpl.error, fpl.squad]);
+
   const teamStatus = mockTeamStatus;
-  const teamName = 'Haaland FC'; // Mock for now
+  const teamName = fpl.gwInfo?.teamName ?? 'Haaland FC';
 
   // Sandbox handlers
   const handleUndo = () => {
@@ -71,8 +106,15 @@ const CommandCenterPage = () => {
       timestamp: new Date(),
     };
     setSandboxActions([...sandboxActions, action]);
-    // Update sandboxSquad
-    // TODO: implement proper transfer logic
+    // Update sandboxSquad: replace playerOut with playerIn if present in realSquad
+    setSandboxSquad((prev) => {
+      const outIdx = prev.findIndex((p) => p.id === playerOutId);
+      const inPlayer = realSquad.find((p) => p.id === playerInId);
+      if (outIdx === -1 || !inPlayer) return prev;
+      const next = prev.slice();
+      next[outIdx] = { ...inPlayer };
+      return next;
+    });
   };
 
   const handleSetCaptain = (playerId: number) => {
@@ -94,6 +136,7 @@ const CommandCenterPage = () => {
   const handleAutoCaptain = () => {
     // Find player with highest xPts
     const starters = sandboxSquad.filter((p) => !p.isBench);
+    if (starters.length === 0) return;
     const best = starters.reduce((a, b) => (a.xPts > b.xPts ? a : b));
     handleSetCaptain(best.id);
   };
@@ -114,7 +157,7 @@ const CommandCenterPage = () => {
       <div className="flex flex-col gap-2">
         <h1 className="text-2xl sm:text-3xl font-bold text-white">Command Center</h1>
         <p className="text-sm text-slate-400">
-          Gameweek {mockCommandCenterAISummary.gameweek} • Team: {teamName} • ID: {teamId}
+          Gameweek {fpl.gwInfo?.gameweek ?? mockCommandCenterAISummary.gameweek} • Team: {teamName} • ID: {teamId}
         </p>
       </div>
 
@@ -135,7 +178,7 @@ const CommandCenterPage = () => {
                     : 'text-slate-400 hover:text-white'
                 }`}
             >
-              {tab === 'pick-team' ? 'Pick Team (GW 27)' : 'AI Sandbox'}
+              {tab === 'pick-team' ? `Pick Team (GW ${fpl.gwInfo?.gameweek ?? mockCommandCenterAISummary.gameweek})` : 'AI Sandbox'}
             </button>
           ))}
         </div>
@@ -146,10 +189,25 @@ const CommandCenterPage = () => {
             <div className="flex flex-col lg:grid lg:grid-cols-3 gap-6">
               {/* Left column - Pitch */}
               <div className="lg:col-span-2 flex flex-col gap-6">
-                <CommandCenterPitch
-                  squad={sandboxSquad}
-                  onSetCaptain={handleSetCaptain}
-                />
+                {fpl.loading ? (
+                  <div className="rounded-2xl bg-slate-900 border border-slate-800 p-6 text-center text-slate-400">Loading squad...</div>
+                ) : fpl.error ? (
+                  <div className="rounded-2xl bg-rose-900/10 border border-rose-800 p-6 text-center text-rose-400">{fpl.error}</div>
+                ) : (
+                  <PitchCard
+                    squad={sandboxSquad.map((p) => ({
+                      name: p.name,
+                      position: p.position,
+                      points: p.points,
+                      isCaptain: p.isCaptain,
+                      isViceCaptain: p.isViceCaptain,
+                      isBench: p.isBench,
+                      photoUrl: p.photoUrl,
+                      chipLabel: p.opponents && p.opponents.length > 0 ? p.opponents.join(', ') : p.teamAbbr || undefined,
+                    }))}
+                  />
+                )}
+
                 <AICommandSummary summary={mockCommandCenterAISummary} />
               </div>
 
@@ -191,10 +249,23 @@ const CommandCenterPage = () => {
                     onApplyTransfer={handleTransfer}
                   />
                   <CustomTransferBuilder onTransfer={handleTransfer} />
-                  <CommandCenterPitch
-                    squad={sandboxSquad}
-                    onSetCaptain={handleSetCaptain}
-                  />
+                  {fpl.loading ? (
+                    <div className="rounded-2xl bg-slate-900 border border-slate-800 p-6 text-center text-slate-400">Loading squad...</div>
+                  ) : fpl.error ? (
+                    <div className="rounded-2xl bg-rose-900/10 border border-rose-800 p-6 text-center text-rose-400">{fpl.error}</div>
+                  ) : (
+                    <PitchCard
+                      squad={sandboxSquad.map((p) => ({
+                        name: p.name,
+                        position: p.position,
+                        points: p.points,
+                        isCaptain: p.isCaptain,
+                        isViceCaptain: p.isViceCaptain,
+                        isBench: p.isBench,
+                        photoUrl: p.photoUrl,
+                      }))}
+                    />
+                  )}
                   <SandboxCharts squad={sandboxSquad} />
                 </div>
 
