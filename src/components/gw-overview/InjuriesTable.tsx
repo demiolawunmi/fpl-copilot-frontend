@@ -1,49 +1,68 @@
+import {
+  Badge,
+  Table,
+  TableContainer,
+  Tbody,
+  Td,
+  Th,
+  Thead,
+  Tr,
+} from '@chakra-ui/react';
 import type { Injury } from '../../data/gwOverviewMocks';
+import { DashboardCard, DashboardHeader } from '../ui/dashboard';
 
 interface Props {
   injuries: Injury[];
 }
 
-const statusColor: Record<Injury['status'], string> = {
-  Injured: 'text-red-400 bg-red-400/10',
-  Suspended: 'text-orange-400 bg-orange-400/10',
-  Doubtful: 'text-yellow-400 bg-yellow-400/10',
+const statusPalette: Record<Injury['status'], { bg: string; color: string }> = {
+  Injured: { bg: 'rgba(248, 113, 113, 0.12)', color: 'red.300' },
+  Suspended: { bg: 'rgba(251, 146, 60, 0.12)', color: 'orange.300' },
+  Doubtful: { bg: 'rgba(250, 204, 21, 0.12)', color: 'yellow.300' },
 };
 
 const InjuriesTable = ({ injuries }: Props) => (
-  <div className="rounded-2xl bg-slate-900 border border-slate-800 overflow-hidden">
-    <h2 className="px-5 py-4 text-sm font-semibold text-white uppercase tracking-wide border-b border-slate-800">
-      Injuries &amp; Suspensions
-    </h2>
-
-    <table className="w-full text-left text-sm">
-      <thead>
-        <tr className="border-b border-slate-800 text-xs uppercase tracking-wide text-slate-500">
-          <th className="px-5 py-3 font-medium">Player</th>
-          <th className="px-5 py-3 font-medium">Team</th>
-          <th className="px-5 py-3 font-medium">Status</th>
-          <th className="px-5 py-3 font-medium">Return</th>
-        </tr>
-      </thead>
-      <tbody>
-        {injuries.map((inj, i) => (
-          <tr
-            key={i}
-            className="border-b border-slate-800/60 last:border-b-0 hover:bg-slate-800/40 transition"
-          >
-            <td className="px-5 py-3 text-white font-medium">{inj.player}</td>
-            <td className="px-5 py-3 text-slate-400">{inj.team}</td>
-            <td className="px-5 py-3">
-              <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${statusColor[inj.status]}`}>
-                {inj.status}
-              </span>
-            </td>
-            <td className="px-5 py-3 text-slate-400">{inj.returnDate}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
+  <DashboardCard>
+    <DashboardHeader title="Injuries & Suspensions" />
+    <TableContainer>
+      <Table variant="simple" size="sm">
+        <Thead>
+          <Tr>
+            <Th color="slate.500">Player</Th>
+            <Th color="slate.500">Team</Th>
+            <Th color="slate.500">Status</Th>
+            <Th color="slate.500">Return</Th>
+          </Tr>
+        </Thead>
+        <Tbody>
+          {injuries.map((inj, i) => {
+            const palette = statusPalette[inj.status];
+            return (
+              <Tr key={i} _hover={{ bg: 'whiteAlpha.50' }}>
+                <Td color="white" fontWeight="medium">
+                  {inj.player}
+                </Td>
+                <Td color="slate.400">{inj.team}</Td>
+                <Td>
+                  <Badge
+                    borderRadius="full"
+                    px={2.5}
+                    py={0.5}
+                    textTransform="none"
+                    bg={palette.bg}
+                    color={palette.color}
+                  >
+                    {inj.status}
+                  </Badge>
+                </Td>
+                <Td color="slate.400">{inj.returnDate}</Td>
+              </Tr>
+            );
+          })}
+        </Tbody>
+      </Table>
+    </TableContainer>
+  </DashboardCard>
 );
 
 export default InjuriesTable;

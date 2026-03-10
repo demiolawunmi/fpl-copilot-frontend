@@ -1,4 +1,4 @@
-import './App.css'
+import { Box } from '@chakra-ui/react';
 import { Routes, Route } from 'react-router-dom';
 import Navbar from './components/NavBar';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -16,22 +16,21 @@ function App() {
   const { teamId } = useTeamId();
   const [teamName, setTeamName] = useState<string | null>(null);
 
-  // Fetch team name on app load (if logged in)
   useEffect(() => {
-    if (teamId) {
-      getEntry(teamId).then(entry => setTeamName(entry.name));
+    if (!teamId) {
+      setTeamName(null);
+      return;
     }
+
+    void getEntry(teamId).then((entry) => setTeamName(entry.name));
   }, [teamId]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-950">
-      {/* Only show navbar when logged in */}
+    <Box minH="100vh" display="flex" flexDirection="column" bg="slate.950">
       {teamId && <Navbar teamName={teamName} />}
 
       <Routes>
         <Route path="/login" element={<LoginPage />} />
-
-        {/* Protected pages */}
         <Route element={<ProtectedRoute />}>
           <Route path="/" element={<HomePage />} />
           <Route path="/gw-overview" element={<GWOverviewPage />} />
@@ -40,7 +39,7 @@ function App() {
           <Route path="/fixtures" element={<FixturesPage />} />
         </Route>
       </Routes>
-    </div>
+    </Box>
   );
 }
 

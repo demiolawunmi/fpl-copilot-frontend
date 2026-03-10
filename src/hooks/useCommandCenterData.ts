@@ -9,7 +9,7 @@
  *   • Fixtures and opponents are loaded for the next GW so the pitch chips
  *     show who each player is facing.
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   getBootstrap,
   getEntry,
@@ -82,9 +82,13 @@ export function useCommandCenterData(teamId: string | null): CommandCenterData {
     myTeam: null,
   });
 
+  const commitState = useCallback((updater: CommandCenterData | ((prev: CommandCenterData) => CommandCenterData)) => {
+    setState(updater);
+  }, []);
+
   useEffect(() => {
     if (!teamId) {
-      setState((s) => ({ ...s, loading: false, error: 'No team ID' }));
+      commitState((s) => ({ ...s, loading: false, error: 'No team ID' }));
       return;
     }
 
@@ -92,7 +96,7 @@ export function useCommandCenterData(teamId: string | null): CommandCenterData {
     const id = teamId;
 
     async function load() {
-      setState((s) => ({ ...s, loading: true, error: null }));
+      commitState((s) => ({ ...s, loading: true, error: null }));
 
       try {
         // ��─ 1. Bootstrap (players, teams, events) ──
@@ -100,10 +104,11 @@ export function useCommandCenterData(teamId: string | null): CommandCenterData {
 
         // ── 2. My-team from our backend ──
         let myTeam: MyTeamResponse | null = null;
+        let myTeamError: string | null = null;
         try {
           myTeam = await getMyTeam();
-        } catch {
-          // backend may not be running
+        } catch (err) {
+          myTeamError = err instanceof Error ? err.message : 'Failed to load my_team.json';
         }
 
         // ── 3. Determine the NEXT gameweek ──
@@ -222,9 +227,9 @@ export function useCommandCenterData(teamId: string | null): CommandCenterData {
           };
         });
 
-        setState({
+        commitState({
           loading: false,
-          error: null,
+          error: myTeamError,
           nextGW,
           gwInfo,
           squad,
@@ -236,16 +241,16 @@ export function useCommandCenterData(teamId: string | null): CommandCenterData {
         if (!cancelled) {
           const message =
             err instanceof Error ? err.message : 'Failed to load data';
-          setState((s) => ({ ...s, loading: false, error: message }));
+          commitState((s) => ({ ...s, loading: false, error: message }));
         }
       }
     }
 
-    load();
+    void load();
     return () => {
       cancelled = true;
     };
-  }, [teamId]);
+  }, [teamId, commitState]);
 
   return state;
 }

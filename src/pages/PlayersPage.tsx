@@ -1,10 +1,11 @@
+import { Center, Heading } from '@chakra-ui/react';
+
 const PlayersPage = () => {
   return (
-    <div className="flex flex-1 items-center justify-center p-8">
-      <h1 className="text-2xl font-bold text-white">Players</h1>
-    </div>
+    <Center flex="1" p={8}>
+      <Heading size="lg">Players</Heading>
+    </Center>
   );
 };
 
 export default PlayersPage;
-

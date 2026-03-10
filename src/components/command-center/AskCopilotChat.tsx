@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { Box, Button, HStack, Input, Stack, Text } from '@chakra-ui/react';
+import { DashboardCard, DashboardHeader, cardScrollSx } from '../ui/dashboard';
 
 const AskCopilotChat = () => {
   const [input, setInput] = useState('');
@@ -17,7 +19,6 @@ const AskCopilotChat = () => {
     setMessages([...messages, { role: 'user', content: userMsg }]);
     setInput('');
 
-    // Stubbed response
     setTimeout(() => {
       const response =
         "Based on your sandbox state and current squad, here's my recommendation:\n\n✓ Palmer is your best captain choice (7.8 xPts)\n✓ Consider benching Saka due to injury\n⚠ Risk: Limited bench depth if injuries occur\n\n[This is a stubbed response. Full AI integration coming soon!]";
@@ -26,51 +27,50 @@ const AskCopilotChat = () => {
   };
 
   return (
-    <div className="rounded-2xl bg-slate-900 border border-slate-800 overflow-hidden flex flex-col">
-      <div className="px-5 py-4 border-b border-slate-800">
-        <h2 className="text-sm font-semibold text-white uppercase tracking-wide">Ask Copilot</h2>
-        <p className="text-xs text-slate-400 mt-1">Get AI-powered advice</p>
-      </div>
-      <div className="px-5 py-4 max-h-80 overflow-y-auto flex-1">
-        <div className="space-y-3">
+    <DashboardCard display="flex" flexDirection="column">
+      <DashboardHeader title="Ask Copilot" description="Get AI-powered advice" />
+      <Box px={5} py={4} maxH="20rem" overflowY="auto" flex="1" sx={cardScrollSx}>
+        <Stack spacing={3}>
           {messages.map((msg, idx) => (
-            <div
-              key={idx}
-              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
-              <div
-                className={`max-w-[85%] px-3 py-2 rounded-lg text-sm ${
-                  msg.role === 'user'
-                    ? 'bg-emerald-500/20 text-emerald-100 border border-emerald-600'
-                    : 'bg-slate-800 text-slate-200 border border-slate-700'
-                }`}
-              >
-                <p className="whitespace-pre-line">{msg.content}</p>
-              </div>
-            </div>
+            <FlexMessage key={idx} role={msg.role} content={msg.content} />
           ))}
-        </div>
-      </div>
-      <div className="px-5 py-4 border-t border-slate-800">
-        <div className="flex gap-2">
-          <input
-            type="text"
+        </Stack>
+      </Box>
+      <Box px={5} py={4} borderTopWidth="1px" borderColor="whiteAlpha.100">
+        <HStack spacing={2}>
+          <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
             placeholder="Ask a question..."
-            className="flex-1 px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-slate-200 text-sm placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
+            size="sm"
           />
-          <button
-            onClick={handleSend}
-            className="px-4 py-2 rounded-lg border border-emerald-700 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 text-sm font-medium transition cursor-pointer"
-          >
+          <Button onClick={handleSend} size="sm" variant="outline" borderColor="rgba(16, 185, 129, 0.22)" color="brand.400" _hover={{ bg: 'rgba(16, 185, 129, 0.12)' }}>
             Send
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </HStack>
+      </Box>
+    </DashboardCard>
   );
 };
+
+const FlexMessage = ({ role, content }: { role: 'user' | 'assistant'; content: string }) => (
+  <Box display="flex" justifyContent={role === 'user' ? 'flex-end' : 'flex-start'}>
+    <Box
+      maxW="85%"
+      px={3}
+      py={2}
+      borderRadius="lg"
+      fontSize="sm"
+      whiteSpace="pre-line"
+      bg={role === 'user' ? 'rgba(16, 185, 129, 0.18)' : 'whiteAlpha.100'}
+      color={role === 'user' ? 'green.100' : 'slate.200'}
+      borderWidth="1px"
+      borderColor={role === 'user' ? 'rgba(16, 185, 129, 0.28)' : 'whiteAlpha.200'}
+    >
+      <Text whiteSpace="pre-line">{content}</Text>
+    </Box>
+  </Box>
+);
 
 export default AskCopilotChat;
