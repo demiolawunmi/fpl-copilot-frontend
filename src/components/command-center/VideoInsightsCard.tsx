@@ -1,4 +1,6 @@
+import { Box, HStack, Stack, Text } from '@chakra-ui/react';
 import type { VideoInsight } from '../../data/commandCenterMocks';
+import { DashboardCard, DashboardHeader, cardScrollSx } from '../ui/dashboard';
 
 interface Props {
   videos: VideoInsight[];
@@ -6,41 +8,28 @@ interface Props {
 
 const VideoInsightsCard = ({ videos }: Props) => {
   return (
-    <div className="rounded-2xl bg-slate-900 border border-slate-800 overflow-hidden">
-      <div className="px-5 py-4 border-b border-slate-800">
-        <h2 className="text-sm font-semibold text-white uppercase tracking-wide">
-          Gameweek Videos
-        </h2>
-        <p className="text-xs text-slate-400 mt-1">Curated FPL content</p>
-      </div>
-      <div className="px-5 py-4 max-h-80 overflow-y-auto">
-        <div className="space-y-3">
-          {videos.map((video) => (
-            <div
-              key={video.id}
-              className="flex flex-col gap-2 pb-3 border-b border-slate-800 last:border-0 last:pb-0"
-            >
-              <p className="text-sm font-semibold text-white">{video.title}</p>
-              <div className="flex items-center gap-2 text-xs text-slate-400">
-                <span>{video.source}</span>
-                <span>•</span>
-                <span>{video.duration}</span>
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {video.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="px-2 py-0.5 text-[10px] font-medium rounded border border-slate-700 bg-slate-800/40 text-slate-300"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
+    <DashboardCard>
+      <DashboardHeader title="Gameweek Videos" description="Curated FPL content" />
+      <Stack px={5} py={4} spacing={3} maxH="20rem" overflowY="auto" sx={cardScrollSx}>
+        {videos.map((video, idx) => (
+          <Box key={video.id} pb={3} borderBottomWidth={idx === videos.length - 1 ? '0' : '1px'} borderColor="whiteAlpha.100">
+            <Text fontSize="sm" fontWeight="semibold" color="white">{video.title}</Text>
+            <HStack mt={2} spacing={2} fontSize="xs" color="slate.400">
+              <Text>{video.source}</Text>
+              <Text>•</Text>
+              <Text>{video.duration}</Text>
+            </HStack>
+            <HStack mt={2} spacing={1.5} flexWrap="wrap">
+              {video.tags.map((tag) => (
+                <Box key={tag} px={2} py={0.5} fontSize="10px" fontWeight="medium" borderRadius="md" borderWidth="1px" borderColor="whiteAlpha.200" bg="whiteAlpha.100" color="slate.300">
+                  {tag}
+                </Box>
+              ))}
+            </HStack>
+          </Box>
+        ))}
+      </Stack>
+    </DashboardCard>
   );
 };
 

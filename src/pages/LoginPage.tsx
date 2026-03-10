@@ -1,6 +1,16 @@
+import {
+  Button,
+  Container,
+  FormControl,
+  Heading,
+  Input,
+  Stack,
+  Text,
+} from '@chakra-ui/react';
 import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTeamId } from '../context/TeamIdContext';
+import { DashboardCard } from '../components/ui/dashboard';
 
 const LoginPage = () => {
   const [input, setInput] = useState('');
@@ -16,35 +26,47 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-950">
-      <div className="w-full max-w-md rounded-2xl bg-slate-900 p-8 shadow-xl">
-        <h1 className="mb-2 text-center text-2xl font-bold text-white">
-          FPL Copilot
-        </h1>
-        <p className="mb-8 text-center text-sm text-slate-400">
-          Enter your FPL Team ID to get started
-        </p>
+    <Container
+      maxW="lg"
+      minH="100vh"
+      display="flex"
+      alignItems="center"
+      justifyContent="center"
+      py={12}
+    >
+      <DashboardCard w="full" p={{ base: 6, md: 8 }}>
+        <Stack as="form" onSubmit={handleSubmit} spacing={6}>
+          <Stack spacing={2} textAlign="center">
+            <Heading size="lg">FPL Copilot</Heading>
+            <Text fontSize="sm" color="slate.400">
+              Enter your FPL Team ID to get started
+            </Text>
+          </Stack>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <input
-            type="text"
-            inputMode="numeric"
-            placeholder="e.g. 123456"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            className="rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-white placeholder-slate-500 outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 transition"
-          />
-          <button
+          <FormControl>
+            <Input
+              type="text"
+              inputMode="numeric"
+              placeholder="e.g. 123456"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              size="lg"
+            />
+          </FormControl>
+
+          <Button
             type="submit"
-            className="rounded-lg bg-emerald-500 px-4 py-3 font-semibold text-white hover:bg-emerald-400 transition duration-200"
+            size="lg"
+            colorScheme="green"
+            bg="brand.500"
+            _hover={{ bg: 'brand.400' }}
           >
             Continue
-          </button>
-        </form>
-      </div>
-    </div>
+          </Button>
+        </Stack>
+      </DashboardCard>
+    </Container>
   );
 };
 
 export default LoginPage;
-

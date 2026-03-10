@@ -20,9 +20,10 @@ export async function backendFetch<T = unknown>(
   debugLog("[BACKEND] GET", url);
 
   const res = await fetch(url, {
+    cache: init?.cache ?? 'no-store',
     ...init,
     headers: {
-      Accept: "application/json",
+      Accept: 'application/json',
       ...init?.headers,
     },
   });
@@ -38,3 +39,27 @@ export async function backendFetch<T = unknown>(
   return data;
 }
 
+export function extractArrayPayload<T>(payload: unknown, preferredKeys: string[] = []): T[] {
+  if (Array.isArray(payload)) {
+    return payload as T[];
+  }
+
+  if (payload && typeof payload === 'object') {
+    const record = payload as Record<string, unknown>;
+
+    for (const key of preferredKeys) {
+      const value = record[key];
+      if (Array.isArray(value)) {
+        return value as T[];
+      }
+    }
+
+    for (const value of Object.values(record)) {
+      if (Array.isArray(value)) {
+        return value as T[];
+      }
+    }
+  }
+
+  return [];
+}

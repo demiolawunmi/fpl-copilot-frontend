@@ -1,9 +1,20 @@
-import { FiChevronRight, FiArrowUp, FiArrowDown } from 'react-icons/fi';
+import {
+  Badge,
+  Box,
+  Button,
+  Flex,
+  HStack,
+  Icon,
+  Stack,
+  Text,
+} from '@chakra-ui/react';
+import { FiArrowDown, FiArrowUp, FiChevronRight } from 'react-icons/fi';
 import type { RecommendedTransfer, RecommendedTransferPlayer } from '../../data/gwOverviewMocks';
+import { DashboardCard, DashboardHeader, cardScrollSx } from '../ui/dashboard';
 
 interface Props {
   transfers: RecommendedTransfer[];
-  heightPx?: number; // match AI summary card height
+  heightPx?: number;
 }
 
 const PlayerInfo = ({
@@ -13,73 +24,93 @@ const PlayerInfo = ({
   player: RecommendedTransferPlayer;
   direction: 'in' | 'out';
 }) => (
-  <div className="flex items-center gap-2.5">
-    <div
-      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white
-        ${direction === 'in' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}
+  <HStack align="center" spacing={2.5} minW={0}>
+    <Flex
+      h={7}
+      w={7}
+      flexShrink={0}
+      align="center"
+      justify="center"
+      borderRadius="full"
+      bg={direction === 'in' ? 'rgba(16, 185, 129, 0.12)' : 'rgba(248, 113, 113, 0.12)'}
+      color={direction === 'in' ? 'brand.400' : 'red.300'}
     >
-      {direction === 'in' ? <FiArrowUp size={14} /> : <FiArrowDown size={14} />}
-    </div>
-    <div className="min-w-0">
-      <p className="truncate text-sm font-medium text-white">{player.name}</p>
-      <p className="text-[11px] text-slate-500">
+      <Icon as={direction === 'in' ? FiArrowUp : FiArrowDown} boxSize={3.5} />
+    </Flex>
+    <Box minW={0}>
+      <Text noOfLines={1} fontSize="sm" fontWeight="medium" color="white">
+        {player.name}
+      </Text>
+      <Text fontSize="11px" color="slate.500">
         {player.team} · {player.position} · {player.price}
-      </p>
-    </div>
-  </div>
+      </Text>
+    </Box>
+  </HStack>
 );
 
 const RecommendedTransfersCard = ({ transfers, heightPx }: Props) => (
-  <div
-    className="rounded-2xl bg-slate-900 border border-slate-800 overflow-hidden flex flex-col"
-    style={heightPx ? { height: `${heightPx}px` } : undefined}
-  >
-    <h2 className="px-5 py-4 text-sm font-semibold text-white uppercase tracking-wide border-b border-slate-800">
-      Recommended Transfers
-    </h2>
+  <DashboardCard display="flex" flexDirection="column" h={heightPx ? `${heightPx}px` : undefined}>
+    <DashboardHeader title="Recommended Transfers" />
 
-    <div className="divide-y divide-slate-800/60 flex-1 overflow-auto">
+    <Stack spacing={0} flex="1" overflow="auto" sx={cardScrollSx}>
       {transfers.map((t, i) => (
-        <div
+        <Box
           key={i}
-          className="px-5 py-4 hover:bg-slate-800/40 transition"
+          px={5}
+          py={4}
+          borderBottomWidth={i === transfers.length - 1 ? '0' : '1px'}
+          borderColor="whiteAlpha.100"
+          _hover={{ bg: 'whiteAlpha.50' }}
         >
-          {/* Players row */}
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex flex-col gap-2.5 min-w-0 flex-1">
+          <Flex align="center" justify="space-between" gap={4}>
+            <Stack spacing={2.5} minW={0} flex="1">
               <PlayerInfo player={t.playerIn} direction="in" />
               <PlayerInfo player={t.playerOut} direction="out" />
-            </div>
+            </Stack>
 
-            {/* xPts diff badge */}
-            <div className="flex flex-col items-center gap-1 shrink-0">
-              <span className="text-[10px] uppercase text-slate-500">xPts</span>
-              <span className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 text-sm font-bold text-emerald-400">
+            <Stack align="center" spacing={1} flexShrink={0}>
+              <Text fontSize="10px" textTransform="uppercase" color="slate.500">
+                xPts
+              </Text>
+              <Badge
+                borderRadius="lg"
+                px={2.5}
+                py={1}
+                textTransform="none"
+                bg="rgba(16, 185, 129, 0.12)"
+                color="brand.400"
+                borderWidth="1px"
+                borderColor="rgba(16, 185, 129, 0.22)"
+              >
                 +{t.xPointsDiff.toFixed(1)}
-              </span>
-            </div>
-          </div>
+              </Badge>
+            </Stack>
+          </Flex>
 
-          {/* Bottom row: rationale + actions */}
-          <div className="mt-3 flex items-center justify-between gap-3">
-            <p className="text-[11px] text-slate-500 leading-snug flex-1 truncate">
+          <Flex mt={3} align="center" justify="space-between" gap={3}>
+            <Text fontSize="11px" color="slate.500" lineHeight="short" noOfLines={1} flex="1">
               {t.rationale}
-            </p>
+            </Text>
 
-            <div className="flex items-center gap-2 shrink-0">
-              <button className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 text-[11px] font-semibold text-emerald-400 hover:bg-emerald-500/20 transition cursor-pointer">
+            <HStack spacing={2} flexShrink={0}>
+              <Button
+                size="xs"
+                variant="outline"
+                borderColor="rgba(16, 185, 129, 0.22)"
+                color="brand.400"
+                _hover={{ bg: 'rgba(16, 185, 129, 0.12)' }}
+              >
                 Apply
-              </button>
-              <button disabled className="text-slate-600 cursor-not-allowed">
+              </Button>
+              <Button size="xs" variant="ghost" isDisabled color="slate.600">
                 <FiChevronRight size={16} />
-              </button>
-            </div>
-          </div>
-        </div>
+              </Button>
+            </HStack>
+          </Flex>
+        </Box>
       ))}
-    </div>
-  </div>
+    </Stack>
+  </DashboardCard>
 );
 
 export default RecommendedTransfersCard;
-

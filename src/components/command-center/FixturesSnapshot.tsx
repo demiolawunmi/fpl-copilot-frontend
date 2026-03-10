@@ -1,45 +1,63 @@
+import { Badge, Box, HStack, Stack, Text } from '@chakra-ui/react';
 import type { FixtureItem } from '../../data/commandCenterMocks';
+import { DashboardCard, DashboardHeader, cardScrollSx } from '../ui/dashboard';
 
 interface Props {
   fixtures: FixtureItem[];
 }
 
-const FixturesSnapshot = ({ fixtures }: Props) => {
-  const getDifficultyColor = (difficulty: number) => {
-    if (difficulty === 1) return 'bg-emerald-500/10 text-emerald-400 border-emerald-600';
-    if (difficulty === 2) return 'bg-green-500/10 text-green-400 border-green-600';
-    if (difficulty === 3) return 'bg-slate-500/10 text-slate-300 border-slate-600';
-    if (difficulty === 4) return 'bg-orange-500/10 text-orange-400 border-orange-600';
-    return 'bg-red-500/10 text-red-400 border-red-600';
-  };
+const getDifficultyStyle = (difficulty: number) => {
+  if (difficulty === 1) return { bg: 'rgba(16, 185, 129, 0.12)', color: 'brand.400', borderColor: 'rgba(16, 185, 129, 0.22)' };
+  if (difficulty === 2) return { bg: 'rgba(34, 197, 94, 0.12)', color: 'green.300', borderColor: 'rgba(34, 197, 94, 0.22)' };
+  if (difficulty === 3) return { bg: 'rgba(100, 116, 139, 0.12)', color: 'slate.300', borderColor: 'rgba(100, 116, 139, 0.22)' };
+  if (difficulty === 4) return { bg: 'rgba(251, 146, 60, 0.12)', color: 'orange.300', borderColor: 'rgba(251, 146, 60, 0.22)' };
+  return { bg: 'rgba(248, 113, 113, 0.12)', color: 'red.300', borderColor: 'rgba(248, 113, 113, 0.22)' };
+};
 
+const FixturesSnapshot = ({ fixtures }: Props) => {
   return (
-    <div className="rounded-2xl bg-slate-900 border border-slate-800 overflow-hidden">
-      <div className="px-5 py-4 border-b border-slate-800">
-        <h2 className="text-sm font-semibold text-white uppercase tracking-wide">Fixtures Snapshot</h2>
-        <p className="text-xs text-slate-400 mt-1">Upcoming fixtures for your squad</p>
-      </div>
-      <div className="px-5 py-4 max-h-80 overflow-y-auto">
-        <div className="space-y-2">
-          {fixtures.map((fixture, idx) => (
-            <div
+    <DashboardCard>
+      <DashboardHeader title="Fixtures Snapshot" description="Upcoming fixtures for your squad" />
+      <Stack px={5} py={4} spacing={2} maxH="20rem" overflowY="auto" sx={cardScrollSx}>
+        {fixtures.map((fixture, idx) => {
+          const style = getDifficultyStyle(fixture.difficulty);
+          return (
+            <HStack
               key={idx}
-              className="flex items-center justify-between gap-3 py-2 px-3 rounded-lg bg-slate-800/30 hover:bg-slate-800/60 transition"
+              justify="space-between"
+              gap={3}
+              px={3}
+              py={2}
+              borderRadius="lg"
+              bg="rgba(30, 41, 59, 0.3)"
+              _hover={{ bg: 'rgba(30, 41, 59, 0.6)' }}
             >
-              <div className="flex items-center gap-2 flex-1 min-w-0">
-                <span className={`px-2 py-1 text-[10px] font-bold rounded border ${getDifficultyColor(fixture.difficulty)}`}>
+              <HStack spacing={2} minW={0} flex="1">
+                <Badge
+                  px={2}
+                  py={1}
+                  fontSize="10px"
+                  textTransform="none"
+                  bg={style.bg}
+                  color={style.color}
+                  borderWidth="1px"
+                  borderColor={style.borderColor}
+                  borderRadius="md"
+                >
                   {fixture.difficulty}
-                </span>
-                <span className="text-xs text-slate-400">GW{fixture.gameweek}</span>
-                <span className="text-sm font-medium text-white truncate">
+                </Badge>
+                <Text fontSize="xs" color="slate.400">
+                  GW{fixture.gameweek}
+                </Text>
+                <Text noOfLines={1} fontSize="sm" fontWeight="medium" color="white">
                   {fixture.home ? 'vs' : '@'} {fixture.opponentAbbr}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
+                </Text>
+              </HStack>
+            </HStack>
+          );
+        })}
+      </Stack>
+    </DashboardCard>
   );
 };
 

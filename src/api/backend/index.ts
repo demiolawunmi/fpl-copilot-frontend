@@ -22,3 +22,7 @@ export type {
 export { getBandwagons } from "./bandwagons";
 export type { BandwagonPlayer, BandwagonsResponse } from "./bandwagons";
 
+// Injury News endpoint
+export { getInjuryNews } from "./injuryNews";
+export type { InjuryNewsPlayer, InjuryNewsResponse } from "./injuryNews";
+

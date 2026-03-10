@@ -1,3 +1,6 @@
+import { Box, Button, Divider, Flex, HStack, Switch, Text } from '@chakra-ui/react';
+import { DashboardCard } from '../ui/dashboard';
+
 interface Props {
   sandboxMode: boolean;
   onToggleSandboxMode: () => void;
@@ -16,55 +19,52 @@ const SandboxControls = ({
   canUndo,
 }: Props) => {
   return (
-    <div className="rounded-2xl bg-slate-900 border border-slate-800 px-5 py-4">
-      <div className="flex flex-wrap items-center gap-4">
-        {/* Sandbox Mode Toggle */}
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-slate-400">Sandbox Mode</span>
-          <button
-            onClick={onToggleSandboxMode}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition cursor-pointer ${
-              sandboxMode ? 'bg-emerald-500' : 'bg-slate-700'
-            }`}
-          >
-            <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
-                sandboxMode ? 'translate-x-6' : 'translate-x-1'
-              }`}
-            />
-          </button>
-        </div>
+    <DashboardCard px={5} py={4}>
+      <Flex wrap="wrap" align="center" gap={4}>
+        <HStack spacing={3}>
+          <Text fontSize="sm" color="slate.400">
+            Sandbox Mode
+          </Text>
+          <Switch isChecked={sandboxMode} onChange={onToggleSandboxMode} colorScheme="green" />
+        </HStack>
 
-        <div className="h-6 w-px bg-slate-700" />
+        <Divider orientation="vertical" h={6} borderColor="whiteAlpha.200" display={{ base: 'none', md: 'block' }} />
 
-        {/* Action Buttons */}
-        <button
+        <Button
           onClick={onUndo}
-          disabled={!canUndo}
-          className={`px-3 py-2 rounded-lg border text-sm font-medium transition ${
-            canUndo
-              ? 'border-slate-700 bg-slate-800/40 text-slate-200 hover:bg-slate-800 hover:text-white cursor-pointer'
-              : 'border-slate-800 bg-slate-900 text-slate-600 cursor-not-allowed'
-          }`}
+          isDisabled={!canUndo}
+          variant="outline"
+          size="sm"
+          borderColor="whiteAlpha.200"
+          color={canUndo ? 'slate.200' : 'slate.600'}
+          _hover={canUndo ? { bg: 'whiteAlpha.100', color: 'white' } : undefined}
         >
           ↶ Undo
-        </button>
+        </Button>
 
-        <button
+        <Button
           onClick={onReset}
-          className="px-3 py-2 rounded-lg border border-slate-700 bg-slate-800/40 text-slate-200 hover:bg-slate-800 hover:text-white transition text-sm font-medium cursor-pointer"
+          variant="outline"
+          size="sm"
+          borderColor="whiteAlpha.200"
+          color="slate.200"
+          _hover={{ bg: 'whiteAlpha.100', color: 'white' }}
         >
           ⟲ Reset
-        </button>
+        </Button>
 
-        <button
+        <Button
           onClick={onApply}
-          className="px-3 py-2 rounded-lg border border-emerald-700 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 hover:text-emerald-300 transition text-sm font-medium cursor-pointer"
+          variant="outline"
+          size="sm"
+          borderColor="rgba(16, 185, 129, 0.22)"
+          color="brand.400"
+          _hover={{ bg: 'rgba(16, 185, 129, 0.12)', color: 'brand.300' }}
         >
           ✓ Apply to Team
-        </button>
-      </div>
-    </div>
+        </Button>
+      </Flex>
+    </DashboardCard>
   );
 };
 
