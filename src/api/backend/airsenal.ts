@@ -93,3 +93,64 @@ export async function getFixturesByPlayer(gw: number): Promise<FixturesByPlayerR
   const payload = await backendFetch<unknown>(`/api/airsenal/gw/${gw}/fixtures_by_player`);
   return extractArrayPayload<PlayerFixture>(payload, ["data", "items", "results", "fixtures_by_player", "players"]);
 }
+
+// ── AIrsenal CLI run (POST) — long-running; server default timeout 3600s ──
+
+export type AirsenalRunAction = "update_db" | "predict" | "optimize" | "export" | "pipeline";
+
+export interface AirsenalRunRequest {
+  action: AirsenalRunAction;
+  /** 1–38 */
+  weeks_ahead?: number;
+  gameweek?: string | number;
+  fpl_team_id?: number | null;
+}
+
+export interface AirsenalRunResponse {
+  ok: boolean;
+  action: string;
+  steps: unknown[];
+}
+
+const defaultRunPath = "/api/airsenal/run";
+
+function airsenalRunTimeoutMs(): number {
+  const raw = import.meta.env.VITE_AIRSENAL_RUN_TIMEOUT_SEC as string | undefined;
+  const sec = raw != null && raw !== "" ? Number(raw) : 3600;
+  return Math.max(1, Number.isFinite(sec) ? sec : 3600) * 1000;
+}
+
+/**
+ * Run an AIrsenal CLI action on the backend (same env as scripts/airsenal.sh).
+ * Use a generous client timeout (default 3600s); override with VITE_AIRSENAL_RUN_TIMEOUT_SEC.
+ * When the backend expects a key, set VITE_AIRSENAL_RUN_KEY (sent as X-Airsenal-Run-Key).
+ * Override path with VITE_AIRSENAL_RUN_PATH if your API route differs.
+ */
+export async function runAirsenal(body: AirsenalRunRequest): Promise<AirsenalRunResponse> {
+  const path =
+    (import.meta.env.VITE_AIRSENAL_RUN_PATH as string | undefined)?.trim() || defaultRunPath;
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  const key = (import.meta.env.VITE_AIRSENAL_RUN_KEY as string | undefined)?.trim();
+  if (key) {
+    headers["X-Airsenal-Run-Key"] = key;
+  }
+
+  const ms = airsenalRunTimeoutMs();
+  const signal =
+    typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function"
+      ? AbortSignal.timeout(ms)
+      : (() => {
+          const c = new AbortController();
+          setTimeout(() => c.abort(), ms);
+          return c.signal;
+        })();
+
+  return backendFetch<AirsenalRunResponse>(path, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(body),
+    signal,
+  });
+}

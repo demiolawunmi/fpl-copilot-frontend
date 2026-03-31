@@ -10,6 +10,7 @@ import { fetchJson } from '../api/fpl/client';
 import { fplEndpoints } from '../api/fpl/endpoints';
 import { getMyTeam, type MyTeamResponse } from '../api/backend';
 import type { GWInfo, GWStats, Player, Fixture } from '../data/gwOverviewMocks';
+import { resolvePrimaryGameweekEvent } from '../utils/fplGameweek';
 
 // ── Live event type (points per player) ──
 type FplLiveEvent = {
@@ -114,9 +115,8 @@ export function useFplData(teamId: string | null, gwOverride?: number): FplData 
           // backend may not be running – fall back gracefully
         }
 
-        // 2. Find current GW
-        const currentEvent = bootstrap.events.find((e) => e.is_current) ??
-          bootstrap.events.filter((e) => e.finished).pop();
+        // 2. Find current GW (is_current → is_next → last finished by id)
+        const currentEvent = resolvePrimaryGameweekEvent(bootstrap.events);
         const currentGW = currentEvent?.id ?? 1;
         const selectedGW = gwOverride ?? currentGW;
         const selectedEvent = bootstrap.events.find((e) => e.id === selectedGW) ?? currentEvent;
@@ -124,8 +124,20 @@ export function useFplData(teamId: string | null, gwOverride?: number): FplData 
         // 3. Entry info
         const entry = await getEntry(id);
 
-        // 4. Picks for selected GW
-        const picks = await getPicks(id, selectedGW);
+        // 4. Picks for selected GW (may 404 if GW hasn't started yet)
+        let picks: import('../api/fpl/fpl').FplPicks | null = null;
+        try {
+          picks = await getPicks(id, selectedGW);
+        } catch {
+          // GW hasn't been played yet — try the previous GW's picks as a fallback
+          if (selectedGW > 1) {
+            try {
+              picks = await getPicks(id, selectedGW - 1);
+            } catch {
+              // no picks available at all
+            }
+          }
+        }
 
         // 5. Live event (points)
         let liveData: FplLiveEvent | null = null;
@@ -163,8 +175,8 @@ export function useFplData(teamId: string | null, gwOverride?: number): FplData 
           }
         }
 
-        // Build squad from picks + bootstrap
-        const uiSquad = buildUiSquadFromPicks(picks, bootstrap);
+        // Build squad from picks + bootstrap (picks may be null if GW not started)
+        const uiSquad = picks ? buildUiSquadFromPicks(picks, bootstrap) : [];
 
         // Build a price lookup from my-team response (element → pick data)
         const myTeamByElement = new Map(

@@ -23,4 +23,18 @@ export default defineConfig({
       },
     },
   },
+  // `vite preview` does not use `server.proxy` unless mirrored here
+  preview: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      '/fpl-api': {
+        target: 'https://fantasy.premierleague.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/fpl-api/, '/api'),
+      },
+    },
+  },
 })

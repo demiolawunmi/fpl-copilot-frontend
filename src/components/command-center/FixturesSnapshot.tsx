@@ -1,4 +1,4 @@
-import { Badge, Box, HStack, Stack, Text } from '@chakra-ui/react';
+import { Badge, HStack, Stack, Text } from '@chakra-ui/react';
 import type { FixtureItem } from '../../data/commandCenterMocks';
 import { DashboardCard, DashboardHeader, cardScrollSx } from '../ui/dashboard';
 

@@ -18,6 +18,10 @@ export type FplBootstrap = {
         web_name: string;
         element_type: number; // 1 GK, 2 DEF, 3 MID, 4 FWD
         team: number;         // team id
+        now_cost?: number;           // price in tenths (e.g. 130 = £13.0m)
+        total_points?: number;
+        form?: string;               // recent form as string (e.g. "7.2")
+        selected_by_percent?: string; // ownership % (e.g. "42.3")
     }>;
     teams: Array<{
         id: number;

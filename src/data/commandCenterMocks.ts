@@ -94,7 +94,7 @@ export interface VideoInsight {
 }
 
 export interface SandboxAction {
-  type: 'transfer' | 'captain' | 'bench_order';
+  type: 'transfer' | 'captain' | 'vice_captain' | 'bench_order';
   payload: any;
   timestamp: Date;
 }

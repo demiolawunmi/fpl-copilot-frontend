@@ -17,7 +17,8 @@ export async function backendFetch<T = unknown>(
   // In dev with the Vite proxy we can use a relative path.
   // In production builds (or if the env var is set) we prepend the base URL.
   const url = `${API_BASE}${path}`;
-  debugLog("[BACKEND] GET", url);
+  const method = init?.method ?? "GET";
+  debugLog(`[BACKEND] ${method}`, url);
 
   const res = await fetch(url, {
     cache: init?.cache ?? 'no-store',
@@ -31,7 +32,10 @@ export async function backendFetch<T = unknown>(
   if (!res.ok) {
     const text = await res.text().catch(() => "");
     debugLog("[BACKEND] ERROR", res.status, text);
-    throw new Error(`Backend request failed: ${res.status} ${res.statusText}`);
+    const hint = text.length > 500 ? `${text.slice(0, 500)}…` : text;
+    throw new Error(
+      `Backend request failed: ${res.status} ${res.statusText}${hint ? ` — ${hint}` : ""}`,
+    );
   }
 
   const data = (await res.json()) as T;

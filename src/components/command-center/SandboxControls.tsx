@@ -1,4 +1,4 @@
-import { Box, Button, Divider, Flex, HStack, Switch, Text } from '@chakra-ui/react';
+import { Button, Divider, Flex, HStack, Switch, Text } from '@chakra-ui/react';
 import { DashboardCard } from '../ui/dashboard';
 
 interface Props {

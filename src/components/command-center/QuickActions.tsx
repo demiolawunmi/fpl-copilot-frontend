@@ -5,10 +5,19 @@ interface Props {
   onAutoCaptain: () => void;
   onAutoBench: () => void;
   onRollTransfer: () => void;
-  onRunOptimization: () => void;
+  /** Opens the optimization dialog (weeks ahead + run). */
+  onOpenOptimization: () => void;
+  /** True while POST / optimize is in flight (long-running). */
+  isOptimizationLoading?: boolean;
 }
 
-const QuickActions = ({ onAutoCaptain, onAutoBench, onRollTransfer, onRunOptimization }: Props) => {
+const QuickActions = ({
+  onAutoCaptain,
+  onAutoBench,
+  onRollTransfer,
+  onOpenOptimization,
+  isOptimizationLoading = false,
+}: Props) => {
   return (
     <DashboardCard>
       <DashboardHeader title="Quick Actions" />
@@ -19,7 +28,17 @@ const QuickActions = ({ onAutoCaptain, onAutoBench, onRollTransfer, onRunOptimiz
         <Button onClick={onAutoBench} justifyContent="flex-start" variant="outline" borderColor="whiteAlpha.200" color="slate.200" _hover={{ bg: 'whiteAlpha.100', color: 'white' }}>
           🔄 Auto-pick Bench Order
         </Button>
-        <Button onClick={onRunOptimization} justifyContent="flex-start" variant="outline" borderColor="rgba(59, 130, 246, 0.22)" color="blue.300" _hover={{ bg: 'rgba(59, 130, 246, 0.12)', color: 'blue.200' }}>
+        <Button
+          onClick={onOpenOptimization}
+          isLoading={isOptimizationLoading}
+          isDisabled={isOptimizationLoading}
+          loadingText="Running optimization…"
+          justifyContent="flex-start"
+          variant="outline"
+          borderColor="rgba(59, 130, 246, 0.22)"
+          color="blue.300"
+          _hover={{ bg: 'rgba(59, 130, 246, 0.12)', color: 'blue.200' }}
+        >
           🧠 Run AIrsenal Optimization
         </Button>
         <Button onClick={onRollTransfer} justifyContent="flex-start" variant="outline" borderColor="rgba(16, 185, 129, 0.22)" color="brand.400" _hover={{ bg: 'rgba(16, 185, 129, 0.12)', color: 'brand.300' }}>

@@ -15,17 +15,45 @@ import { DashboardCard } from '../ui/dashboard';
 
 interface Props {
   squad: Player[];
+  /** When provided, player chips become clickable for swap / selection. */
+  onPlayerClick?: (player: Player) => void;
+  /** ID of the currently selected player (highlighted). */
+  selectedPlayerId?: number | null;
+  /** Hint text shown when a player is selected. */
+  swapHint?: string;
+  /** Set a starter as captain (single-tap the C badge). */
+  onSetCaptain?: (player: Player) => void;
+  /** Set a starter as vice-captain (single-tap the V badge). */
+  onSetViceCaptain?: (player: Player) => void;
 }
 
-const CHIP = {
+const CHIP: {
+  imgAspect: string;
+  imgScale: number;
+  imgAnchor: 'top' | 'center' | 'bottom';
+  imgYOffset: number;
+  imgFit: 'cover' | 'contain';
+} = {
   imgAspect: '11 / 8',
   imgScale: 140,
-  imgAnchor: 'bottom' as const,
+  imgAnchor: 'bottom',
   imgYOffset: 35,
-  imgFit: 'contain' as const,
+  imgFit: 'contain',
 };
 
-const PlayerChip = ({ player }: { player: Player }) => {
+const PlayerChip = ({
+  player,
+  onClick,
+  isSelected,
+  onCaptainClick,
+  onViceCaptainClick,
+}: {
+  player: Player;
+  onClick?: () => void;
+  isSelected?: boolean;
+  onCaptainClick?: () => void;
+  onViceCaptainClick?: () => void;
+}) => {
   const difficultyStyles = (() => {
     if (player.chipDifficulty !== undefined) {
       const color = getDifficultyColor(player.chipDifficulty);
@@ -44,8 +72,18 @@ const PlayerChip = ({ player }: { player: Player }) => {
   const wrapperAlign = CHIP.imgAnchor === 'top' ? 'flex-start' : CHIP.imgAnchor === 'center' ? 'center' : 'flex-end';
 
   return (
-    <Box w={{ base: '60px', sm: '81px' }}>
-      <Box position="relative" overflow="hidden" borderWidth="1px" borderColor="whiteAlpha.300" borderTopRadius="lg" bg="rgba(51, 65, 85, 0.4)" style={{ aspectRatio: CHIP.imgAspect }}>
+    <Box
+      position="relative"
+      w={{ base: '60px', sm: '81px' }}
+      cursor={onClick ? 'pointer' : undefined}
+      onClick={onClick}
+      transition="transform 0.15s, box-shadow 0.15s"
+      transform={isSelected ? 'scale(1.08)' : undefined}
+      boxShadow={isSelected ? '0 0 0 2px rgba(59, 130, 246, 0.7), 0 0 12px rgba(59, 130, 246, 0.35)' : undefined}
+      borderRadius="lg"
+      _hover={onClick ? { transform: isSelected ? 'scale(1.08)' : 'scale(1.04)' } : undefined}
+    >
+      <Box position="relative" overflow="hidden" borderWidth="1px" borderColor={isSelected ? 'blue.400' : 'whiteAlpha.300'} borderTopRadius="lg" bg="rgba(51, 65, 85, 0.4)" style={{ aspectRatio: CHIP.imgAspect }}>
         {player.photoUrl ? (
           CHIP.imgFit === 'cover' ? (
             <Image
@@ -80,17 +118,58 @@ const PlayerChip = ({ player }: { player: Player }) => {
           </Center>
         )}
 
-        {player.isCaptain ? (
-          <Center position="absolute" top="2px" right="2px" boxSize={4} borderRadius="full" bg="yellow.400" fontSize="8px" fontWeight="bold" color="black" zIndex={1}>
-            C
-          </Center>
-        ) : null}
-        {player.isViceCaptain ? (
-          <Center position="absolute" top="2px" right="2px" boxSize={4} borderRadius="full" bg="slate.400" fontSize="8px" fontWeight="bold" color="black" zIndex={1}>
-            V
-          </Center>
-        ) : null}
       </Box>
+
+      {/* Captain / Vice-Captain badges */}
+      {player.isCaptain ? (
+        <Center position="absolute" top="2px" right="2px" boxSize={4} borderRadius="full" bg="yellow.400" fontSize="8px" fontWeight="bold" color="black" zIndex={3}>
+          C
+        </Center>
+      ) : player.isViceCaptain ? (
+        <Center position="absolute" top="2px" right="2px" boxSize={4} borderRadius="full" bg="slate.400" fontSize="8px" fontWeight="bold" color="black" zIndex={3}>
+          V
+        </Center>
+      ) : !player.isBench && (onCaptainClick || onViceCaptainClick) ? (
+        // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
+        <div
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+          style={{ position: 'absolute', top: 2, right: 2, display: 'flex', flexDirection: 'column', gap: 2, zIndex: 10 }}
+        >
+          {onCaptainClick && (
+            <button
+              type="button"
+              onClick={onCaptainClick}
+              style={{
+                width: 18, height: 18, borderRadius: '50%', border: 'none',
+                background: 'rgba(255,255,255,0.3)', color: 'rgba(255,255,255,0.8)',
+                fontSize: 8, fontWeight: 700, cursor: 'pointer', display: 'grid', placeItems: 'center',
+                transition: 'all 0.15s',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = '#facc15'; e.currentTarget.style.color = '#000'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.3)'; e.currentTarget.style.color = 'rgba(255,255,255,0.8)'; }}
+            >
+              C
+            </button>
+          )}
+          {onViceCaptainClick && (
+            <button
+              type="button"
+              onClick={onViceCaptainClick}
+              style={{
+                width: 18, height: 18, borderRadius: '50%', border: 'none',
+                background: 'rgba(255,255,255,0.3)', color: 'rgba(255,255,255,0.8)',
+                fontSize: 8, fontWeight: 700, cursor: 'pointer', display: 'grid', placeItems: 'center',
+                transition: 'all 0.15s',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = '#94a3b8'; e.currentTarget.style.color = '#000'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.3)'; e.currentTarget.style.color = 'rgba(255,255,255,0.8)'; }}
+            >
+              V
+            </button>
+          )}
+        </div>
+      ) : null}
 
       <Box px={1} py={0.5} bg="rgba(15, 23, 42, 0.8)" borderLeftWidth="1px" borderRightWidth="1px" borderColor="whiteAlpha.300">
         <Text noOfLines={1} fontSize="10px" fontWeight="medium" color="white" textAlign="center" lineHeight="tight">
@@ -116,23 +195,55 @@ const PlayerChip = ({ player }: { player: Player }) => {
   );
 };
 
-const PitchRow = ({ players }: { players: Player[] }) => (
+const PitchRow = ({
+  players,
+  onPlayerClick,
+  selectedPlayerId,
+  onSetCaptain,
+  onSetViceCaptain,
+}: {
+  players: Player[];
+  onPlayerClick?: (p: Player) => void;
+  selectedPlayerId?: number | null;
+  onSetCaptain?: (p: Player) => void;
+  onSetViceCaptain?: (p: Player) => void;
+}) => (
   <SimpleGrid columns={Math.max(players.length, 1)} spacingX={{ base: 2, sm: 4 }} spacingY={{ base: 2, sm: 3 }} w="full" placeItems="center">
     {players.map((p) => (
-      <PlayerChip key={p.name} player={p} />
+      <PlayerChip
+        key={p.name}
+        player={p}
+        onClick={onPlayerClick ? () => onPlayerClick(p) : undefined}
+        isSelected={selectedPlayerId != null && p.id === selectedPlayerId}
+        onCaptainClick={onSetCaptain ? () => onSetCaptain(p) : undefined}
+        onViceCaptainClick={onSetViceCaptain ? () => onSetViceCaptain(p) : undefined}
+      />
     ))}
   </SimpleGrid>
 );
 
-const BenchRow = ({ players }: { players: Player[] }) => (
+const BenchRow = ({
+  players,
+  onPlayerClick,
+  selectedPlayerId,
+}: {
+  players: Player[];
+  onPlayerClick?: (p: Player) => void;
+  selectedPlayerId?: number | null;
+}) => (
   <SimpleGrid columns={Math.max(players.length, 1)} spacingX={{ base: 2, sm: 4 }} spacingY={{ base: 2, sm: 3 }} w="full" placeItems="center">
     {players.map((p) => (
-      <PlayerChip key={p.name} player={p} />
+      <PlayerChip
+        key={p.name}
+        player={p}
+        onClick={onPlayerClick ? () => onPlayerClick(p) : undefined}
+        isSelected={selectedPlayerId != null && p.id === selectedPlayerId}
+      />
     ))}
   </SimpleGrid>
 );
 
-const PitchCard = ({ squad }: Props) => {
+const PitchCard = ({ squad, onPlayerClick, selectedPlayerId, swapHint, onSetCaptain, onSetViceCaptain }: Props) => {
   const [tab, setTab] = useState<'pitch' | 'table'>('pitch');
 
   const starters = squad.filter((p) => !p.isBench);
@@ -176,15 +287,29 @@ const PitchCard = ({ squad }: Props) => {
         >
           <PitchLines />
           <Stack position="relative" spacing={5} align="center">
-            <PitchRow players={gk} />
-            <PitchRow players={def} />
-            <PitchRow players={mid} />
-            <PitchRow players={fwd} />
+            {swapHint && selectedPlayerId != null && (
+              <Text
+                textAlign="center"
+                fontSize="xs"
+                fontWeight="medium"
+                color="blue.300"
+                bg="rgba(59, 130, 246, 0.1)"
+                px={3}
+                py={1}
+                borderRadius="md"
+              >
+                {swapHint}
+              </Text>
+            )}
+            <PitchRow players={gk} onPlayerClick={onPlayerClick} selectedPlayerId={selectedPlayerId} onSetCaptain={onSetCaptain} onSetViceCaptain={onSetViceCaptain} />
+            <PitchRow players={def} onPlayerClick={onPlayerClick} selectedPlayerId={selectedPlayerId} onSetCaptain={onSetCaptain} onSetViceCaptain={onSetViceCaptain} />
+            <PitchRow players={mid} onPlayerClick={onPlayerClick} selectedPlayerId={selectedPlayerId} onSetCaptain={onSetCaptain} onSetViceCaptain={onSetViceCaptain} />
+            <PitchRow players={fwd} onPlayerClick={onPlayerClick} selectedPlayerId={selectedPlayerId} onSetCaptain={onSetCaptain} onSetViceCaptain={onSetViceCaptain} />
             <Box mt={2} w="full" rounded="xl" bg="rgba(15, 23, 42, 0.8)" px={4} py={3}>
               <Text mb={2} textAlign="center" fontSize="10px" fontWeight="semibold" textTransform="uppercase" letterSpacing="widest" color="slate.500">
                 Bench
               </Text>
-              <BenchRow players={bench} />
+              <BenchRow players={bench} onPlayerClick={onPlayerClick} selectedPlayerId={selectedPlayerId} />
             </Box>
           </Stack>
         </Box>

@@ -6,7 +6,6 @@ import {
   HStack,
   Icon,
   Image,
-  Stack,
   Text,
 } from "@chakra-ui/react";
 import { FiChevronRight } from "react-icons/fi";

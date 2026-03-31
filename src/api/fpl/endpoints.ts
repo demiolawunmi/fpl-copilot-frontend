@@ -1,4 +1,21 @@
-const BASE = "/fpl-api";
+/**
+ * FPL JSON API base path.
+ * - Dev: `/fpl-api` is proxied by Vite → `https://fantasy.premierleague.com/api` (avoids CORS during local dev).
+ * - Prod / preview: use the real origin so `/fpl-api/...` is not requested from your static host (which 404s).
+ * Override with `VITE_FPL_API_BASE` if you front the API with your own proxy.
+ */
+const FPL_API_BASE = (() => {
+  const env = import.meta.env.VITE_FPL_API_BASE as string | undefined;
+  if (env != null && env.trim() !== "") {
+    return env.replace(/\/$/, "");
+  }
+  if (import.meta.env.DEV) {
+    return "/fpl-api";
+  }
+  return "https://fantasy.premierleague.com/api";
+})();
+
+const BASE = FPL_API_BASE;
 const PL_RESOURCES = "https://resources.premierleague.com/premierleague25/photos/players";
 const PL_BADGES = "https://resources.premierleague.com/premierleague25/badges";
 
