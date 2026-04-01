@@ -29,11 +29,12 @@ import {
 } from '../data/gwOverviewMocks';
 import { useTeamId } from '../context/TeamIdContext';
 import { useFplData } from '../hooks/useFplData';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const GWOverviewPage = () => {
   const { teamId } = useTeamId();
   const navigate = useNavigate();
+  const location = useLocation();
   const [selectedGW, setSelectedGW] = useState<number | null>(null);
   const fpl = useFplData(teamId, selectedGW ?? undefined);
 
@@ -141,8 +142,8 @@ const GWOverviewPage = () => {
                 onPlayerClick={(player) => {
                   // Guard: only navigate when a valid numeric id is present
                   const id = player?.id;
-                  if (id == null || typeof id !== 'number' || Number.isNaN(id)) return;
-                  navigate(`/players/${id}`);
+                  if (id == null || typeof id !== 'number' || Number.isNaN(id) || id <= 0) return;
+                  navigate(`/players/${id}`, { state: { from: location.pathname } });
                 }}
               />
             </Box>

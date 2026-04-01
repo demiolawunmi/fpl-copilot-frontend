@@ -21,16 +21,21 @@ interface Props {
 type Order = "newest" | "oldest";
 
 /* ── team badge (real image or fallback colored circle) ── */
-const Badge = ({ abbr, color, badge }: { abbr: string; color: string; badge?: string }) =>
-  badge ? (
-    <Image
-      src={badge}
-      alt={abbr}
-      boxSize={8}
-      objectFit="contain"
-      loading="lazy"
-    />
-  ) : (
+const Badge = ({ abbr, color, badge }: { abbr: string; color: string; badge?: string }) => {
+  const [failed, setFailed] = useState(false);
+  if (badge && !failed) {
+    return (
+      <Image
+        src={badge}
+        alt={abbr}
+        boxSize={8}
+        objectFit="contain"
+        loading="lazy"
+        onError={() => setFailed(true)}
+      />
+    );
+  }
+  return (
     <Flex
       boxSize={8}
       flexShrink={0}
@@ -45,6 +50,7 @@ const Badge = ({ abbr, color, badge }: { abbr: string; color: string; badge?: st
       {abbr}
     </Flex>
   );
+};
 
 function toTime(f: Fixture) {
   // Prefer dateISO if you add it; fallback to Date.parse(date) if not.

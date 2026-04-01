@@ -28,6 +28,7 @@ export type PlayerStatsColumnKey =
   | 'ownership'
   | 'minutes'
   | 'points'
+  | 'xPts'
   | 'goals'
   | 'assists'
   | 'xG'
@@ -75,6 +76,7 @@ export const PLAYER_STATS_DEFAULT_VISIBLE_COLUMNS: PlayerStatsColumnKey[] = [
   'ownership',
   'minutes',
   'points',
+  'xPts',
   'goals',
   'assists',
   'xG',
@@ -92,6 +94,7 @@ export const PLAYER_STATS_COLUMN_DEFINITIONS: PlayerStatsColumnDefinition[] = [
   { key: 'ownership', label: 'Ownership' },
   { key: 'minutes', label: 'Minutes' },
   { key: 'points', label: 'Points' },
+  { key: 'xPts', label: 'xPts' },
   { key: 'goals', label: 'Goals' },
   { key: 'assists', label: 'Assists' },
   { key: 'xG', label: 'xG' },

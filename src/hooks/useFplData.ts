@@ -271,11 +271,11 @@ export function useFplData(teamId: string | null, gwOverride?: number): FplData 
             homeTeam: home?.name ?? 'Unknown',
             homeAbbr,
             homeColor: TEAM_COLORS[homeAbbr] ?? '#666',
-            homeBadge: home?.code ? fplEndpoints.teamBadge(home.code, 't40') : undefined,
+            homeBadge: home?.code ? fplEndpoints.teamBadge(home.code) : undefined,
             awayTeam: away?.name ?? 'Unknown',
             awayAbbr,
             awayColor: TEAM_COLORS[awayAbbr] ?? '#666',
-            awayBadge: away?.code ? fplEndpoints.teamBadge(away.code, 't40') : undefined,
+            awayBadge: away?.code ? fplEndpoints.teamBadge(away.code) : undefined,
             homeScore: f.team_h_score ?? 0,
             awayScore: f.team_a_score ?? 0,
           };

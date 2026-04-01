@@ -33,6 +33,8 @@ export type PlayerStatsRowModel = {
   xGI: number;
   goalsPer90: number;
   xgPer90: number;
+  /** Expected points (FPL ep_next / ep_this; may be overridden by predictions in UI). */
+  xPts: number;
   nextFixtures: PlayerStatsFixturePill[];
 };
 
@@ -96,6 +98,7 @@ export function mapBootstrapElementsToPlayerStatsRows(input: {
         stat: element.expected_goals,
         minutes: element.minutes,
       }),
+      xPts: parseStatNumber(element.ep_next ?? element.ep_this),
       nextFixtures: nextFixturesByTeam.get(element.team) ?? [],
     };
   });

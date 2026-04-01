@@ -9,7 +9,7 @@ import {
   Stack,
   Text,
 } from '@chakra-ui/react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { fetchJson } from '../api/fpl/client';
 import { fplEndpoints } from '../api/fpl/endpoints';
 import { getBootstrap } from '../api/fpl/fpl';
@@ -23,6 +23,7 @@ import PlayerStatsFilters, {
 } from '../components/player-statistics/PlayerStatsFilters';
 import PlayerStatsTable from '../components/player-statistics/PlayerStatsTable';
 import { DashboardCard, DashboardHeader } from '../components/ui/dashboard';
+import { usePredictionsData } from '../hooks/usePredictionsData';
 import { createTeamAbbreviationMap } from '../utils/playerStatsFormat';
 import {
   mapBootstrapElementsToPlayerStatsRows,
@@ -33,15 +34,18 @@ import {
 
 const PlayersPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [rows, setRows] = useState<PlayerStatsRowModel[]>([]);
+  const [nextGwId, setNextGwId] = useState<number | null>(null);
   const [teamOptions, setTeamOptions] = useState<Array<{ value: string; label: string }>>([]);
   const [filters, setFilters] = useState<PlayerStatsFiltersState>(PLAYER_STATS_DEFAULT_FILTERS);
   const [leaderboardCards, setLeaderboardCards] = useState<
     ReturnType<typeof buildPlayerLeaderboardCardsData>
   >([]);
   const { visibleColumns, setVisibleColumns } = usePersistedPlayerStatsColumns();
+  const predictions = usePredictionsData(nextGwId);
 
   useEffect(() => {
     let active = true;
@@ -71,6 +75,10 @@ const PlayersPage = () => {
           fixtures,
           nextFixturesLimit: 5,
         });
+
+        const bootstrapEvents = (bootstrap as { events?: Array<{ id: number; is_next?: boolean }> }).events;
+        const nextEv = bootstrapEvents?.find((e) => e.is_next);
+        setNextGwId(nextEv?.id ?? null);
 
         const teamMap = createTeamAbbreviationMap(teams);
         const cards = buildPlayerLeaderboardCardsData({
@@ -109,10 +117,21 @@ const PlayersPage = () => {
     };
   }, []);
 
+  const rowsWithPredictions = useMemo(() => {
+    return rows.map((row) => {
+      const pred = predictions.lookupPrediction(row.name, row.teamAbbr);
+      const xp = pred?.xp;
+      if (pred != null && xp != null && Number.isFinite(xp)) {
+        return { ...row, xPts: xp };
+      }
+      return row;
+    });
+  }, [rows, predictions]);
+
   const filteredRows = useMemo(() => {
     const searchQuery = filters.search.trim().toLowerCase();
 
-    return rows.filter((row) => {
+    return rowsWithPredictions.filter((row) => {
       if (searchQuery && !row.name.toLowerCase().includes(searchQuery)) {
         return false;
       }
@@ -139,14 +158,14 @@ const PlayersPage = () => {
 
       return true;
     });
-  }, [filters, rows]);
+  }, [filters, rowsWithPredictions]);
 
   const handleRowSelect = (id: number) => {
-    navigate(`/players/${id}`);
+    navigate(`/players/${id}`, { state: { from: location.pathname } });
   };
 
   const handleViewClick = (id: number) => {
-    navigate(`/players/${id}`);
+    navigate(`/players/${id}`, { state: { from: location.pathname } });
   };
 
   return (

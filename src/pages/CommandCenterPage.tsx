@@ -24,6 +24,7 @@ import {
   Text,
   useToast,
 } from '@chakra-ui/react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useTeamId } from '../context/TeamIdContext';
 import {
   mockCommandCenterAISummary,
@@ -116,6 +117,8 @@ const mapUiPlayerToEnhanced = (
 
 const CommandCenterPage = () => {
   const { teamId } = useTeamId();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState<Tab>('pick-team');
   const toast = useToast();
 
@@ -632,7 +635,16 @@ const CommandCenterPage = () => {
             <Grid templateColumns={{ base: '1fr', xl: 'repeat(3, minmax(0, 1fr))' }} gap={6}>
               <GridItem colSpan={{ base: 1, xl: 2 }}>
                 <Stack spacing={6}>
-                  {cc.loading ? loadingCard : !hasLiveMyTeam ? (cc.error ? errorCard : emptyMyTeamCard) : <PitchCard squad={mappedPickTeamSquad} />}
+                  {cc.loading ? loadingCard : !hasLiveMyTeam ? (cc.error ? errorCard : emptyMyTeamCard) : (
+                    <PitchCard
+                      squad={mappedPickTeamSquad}
+                      onPlayerClick={(player) => {
+                        const id = player?.id;
+                        if (id == null || typeof id !== 'number' || Number.isNaN(id) || id <= 0) return;
+                        navigate(`/players/${id}`, { state: { from: location.pathname } });
+                      }}
+                    />
+                  )}
                   <AICommandSummary summary={mockCommandCenterAISummary} />
                 </Stack>
               </GridItem>

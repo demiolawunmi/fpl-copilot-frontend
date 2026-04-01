@@ -1,49 +1,66 @@
+import { useMemo } from 'react';
 import {
   Alert,
   AlertDescription,
   Button,
   Container,
+  SimpleGrid,
   Skeleton,
   Stack,
   Text,
 } from '@chakra-ui/react';
-import { Link as RouterLink, useParams } from 'react-router-dom';
+import { Link as RouterLink, useLocation, useParams } from 'react-router-dom';
 import PlayerFixturesPanel from '../components/player-statistics/PlayerFixturesPanel';
 import PlayerFormTrend from '../components/player-statistics/PlayerFormTrend';
 import PlayerHeroCard from '../components/player-statistics/PlayerHeroCard';
-import PlayerInsightCallout from '../components/player-statistics/PlayerInsightCallout';
-import PlayerPositionInsights from '../components/player-statistics/PlayerPositionInsights';
 import { DashboardCard } from '../components/ui/dashboard';
 import { usePlayerDetail } from '../hooks/usePlayerDetail';
+import { usePredictionsData } from '../hooks/usePredictionsData';
 
 const PlayerDetailPage = () => {
+  const location = useLocation();
   const { playerId } = useParams<{ playerId: string }>();
   const safePlayerId = playerId ?? '';
-  const { loading, error, element, summary, historySorted } = usePlayerDetail(safePlayerId);
+  const { loading, error, element, summary, historySorted, nextGameweekId } = usePlayerDetail(safePlayerId);
+  const predictions = usePredictionsData(nextGameweekId);
+
+  const back = useMemo(() => {
+    const from = (location.state as { from?: string } | null)?.from;
+    if (from === '/gw-overview') return { to: '/gw-overview', label: 'Back to GW overview' };
+    if (from === '/command-center') return { to: '/command-center', label: 'Back to command center' };
+    if (from === '/players') return { to: '/players', label: 'Back to players' };
+    return { to: '/players', label: 'Back to players' };
+  }, [location.state]);
+
+  const predictionXp = useMemo(() => {
+    if (!element) return null;
+    const pred = predictions.lookupPrediction(element.web_name, element.teamShortName);
+    if (pred != null && Number.isFinite(pred.xp)) return pred.xp;
+    return null;
+  }, [element, predictions]);
 
   return (
     <Container maxW="8xl" flex="1" px={{ base: 4, md: 6, xl: 10 }} py={{ base: 6, xl: 8 }}>
       <Stack spacing={6}>
         <Button
           as={RouterLink}
-          to="/players"
+          to={back.to}
           alignSelf="flex-start"
           size="sm"
           variant="ghost"
           color="slate.200"
           _hover={{ bg: 'whiteAlpha.100', color: 'white' }}
         >
-          Back to players
+          {back.label}
         </Button>
 
         {loading ? (
-          <Stack spacing={4}>
-            <Skeleton height="220px" borderRadius="2xl" />
-            <Stack direction={{ base: 'column', lg: 'row' }} spacing={4}>
-              <Skeleton height="280px" borderRadius="2xl" flex="1" />
-              <Skeleton height="280px" borderRadius="2xl" flex="1" />
-            </Stack>
-            <Skeleton height="180px" borderRadius="2xl" />
+          <Stack spacing={4} w="full">
+            <Skeleton height="220px" borderRadius="2xl" w="full" />
+            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} w="full">
+              <Skeleton height="280px" borderRadius="2xl" w="full" />
+              <Skeleton height="280px" borderRadius="2xl" w="full" />
+            </SimpleGrid>
           </Stack>
         ) : null}
 
@@ -70,19 +87,18 @@ const PlayerDetailPage = () => {
         ) : null}
 
         {!loading && !error && element && summary ? (
-          <Stack spacing={4}>
-            <PlayerHeroCard element={element} />
+          <Stack spacing={4} w="full">
+            <PlayerHeroCard
+              key={element.id}
+              element={element}
+              expectedPoints={predictionXp}
+              fixtures={summary.fixtures}
+            />
 
-            <Stack direction={{ base: 'column', xl: 'row' }} spacing={4} align="stretch">
-              <Stack spacing={4} flex="1.2">
-                <PlayerFormTrend history={historySorted} />
-                <PlayerPositionInsights element={element} />
-              </Stack>
-              <Stack spacing={4} flex="1">
-                <PlayerFixturesPanel fixtures={summary.fixtures} />
-                <PlayerInsightCallout form={element.form} fixtures={summary.fixtures} />
-              </Stack>
-            </Stack>
+            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} w="full" alignItems="stretch">
+              <PlayerFormTrend history={historySorted} />
+              <PlayerFixturesPanel fixtures={summary.fixtures} />
+            </SimpleGrid>
           </Stack>
         ) : null}
       </Stack>

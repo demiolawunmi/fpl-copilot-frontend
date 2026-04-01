@@ -1,5 +1,5 @@
 import { Box, Button, Center, Flex, HStack, SimpleGrid, Stack, Text } from '@chakra-ui/react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import type { EnhancedPlayer } from '../../data/commandCenterMocks';
 import { DashboardCard } from '../ui/dashboard';
 
@@ -10,6 +10,7 @@ interface Props {
 
 const CommandCenterPitch = ({ squad, onSetCaptain }: Props) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const starters = squad.filter((p) => !p.isBench);
   const bench = squad.filter((p) => p.isBench);
 
@@ -20,8 +21,8 @@ const CommandCenterPitch = ({ squad, onSetCaptain }: Props) => {
 
   const handlePlayerClick = (player: EnhancedPlayer) => {
     const id = player?.id;
-    if (id == null || typeof id !== 'number' || Number.isNaN(id)) return;
-    navigate(`/players/${id}`);
+    if (id == null || typeof id !== 'number' || Number.isNaN(id) || id <= 0) return;
+    navigate(`/players/${id}`, { state: { from: location.pathname } });
   };
 
   return (

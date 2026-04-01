@@ -1,4 +1,5 @@
-import { Badge, HStack, Stack, Text } from '@chakra-ui/react';
+import { useState } from 'react';
+import { Badge, Flex, HStack, Image, Stack, Text } from '@chakra-ui/react';
 import type { PlayerDetailFixture } from '../../hooks/usePlayerDetail';
 import { DashboardCard, DashboardHeader, cardScrollSx } from '../ui/dashboard';
 
@@ -43,7 +44,7 @@ const PlayerFixturesPanel = ({ fixtures, maxItems = DEFAULT_MAX_ITEMS }: PlayerF
 
             return (
               <HStack
-                key={fixture.id}
+                key={`${fixture.id}-${fixture.event ?? 'e'}-${fixture.kickoff_time ?? ''}`}
                 justify="space-between"
                 align="center"
                 spacing={3}
@@ -54,6 +55,10 @@ const PlayerFixturesPanel = ({ fixtures, maxItems = DEFAULT_MAX_ITEMS }: PlayerF
                 _hover={{ bg: 'rgba(30, 41, 59, 0.6)' }}
               >
                 <HStack minW={0} spacing={2}>
+                  <OpponentBadge
+                    abbr={opponentLabel}
+                    badgeUrl={fixture.opponentBadgeUrl}
+                  />
                   <Text fontSize="sm" fontWeight="semibold" color="white" noOfLines={1}>
                     {opponentLabel}
                   </Text>
@@ -71,6 +76,11 @@ const PlayerFixturesPanel = ({ fixtures, maxItems = DEFAULT_MAX_ITEMS }: PlayerF
                 </HStack>
 
                 <HStack spacing={2} flexShrink={0}>
+                  {fixture.event != null ? (
+                    <Text fontSize="xs" color="slate.500" whiteSpace="nowrap">
+                      GW {fixture.event}
+                    </Text>
+                  ) : null}
                   {kickoffLabel ? (
                     <Text fontSize="xs" color="slate.400" whiteSpace="nowrap">
                       {kickoffLabel}
@@ -164,6 +174,40 @@ function getDifficultyStyle(difficulty: number) {
     color: 'red.300',
     borderColor: 'rgba(248, 113, 113, 0.22)',
   };
+}
+
+function OpponentBadge({ abbr, badgeUrl }: { abbr: string; badgeUrl?: string }) {
+  const [failed, setFailed] = useState(false);
+  if (badgeUrl && !failed) {
+    return (
+      <Image
+        src={badgeUrl}
+        alt={abbr}
+        boxSize={6}
+        borderRadius="full"
+        objectFit="contain"
+        bg="whiteAlpha.50"
+        loading="lazy"
+        flexShrink={0}
+        onError={() => setFailed(true)}
+      />
+    );
+  }
+  return (
+    <Flex
+      boxSize={6}
+      flexShrink={0}
+      align="center"
+      justify="center"
+      borderRadius="full"
+      fontSize="7px"
+      fontWeight="bold"
+      color="white"
+      bg="slate.600"
+    >
+      {abbr.slice(0, 3)}
+    </Flex>
+  );
 }
 
 export default PlayerFixturesPanel;

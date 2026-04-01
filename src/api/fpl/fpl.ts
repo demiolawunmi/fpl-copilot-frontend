@@ -118,7 +118,8 @@ export type ElementSummaryFixture = {
     event_name: string | null;
     is_home: boolean;
     difficulty: number;
-    opponent_team: number;
+    /** Often omitted on live API; derive from `team_h` / `team_a` and the player’s `team` id. */
+    opponent_team?: number;
 };
 
 export type ElementSummaryHistory = {

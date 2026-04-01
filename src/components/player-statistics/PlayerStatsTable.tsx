@@ -45,6 +45,7 @@ const COLUMN_LABELS: Record<PlayerStatsColumnKey, string> = {
   ownership: 'Ownership',
   minutes: 'Minutes',
   points: 'Points',
+  xPts: 'xPts',
   goals: 'Goals',
   assists: 'Assists',
   xG: 'xG',
@@ -63,6 +64,7 @@ const SORTABLE_COLUMNS: Set<SortableColumnKey> = new Set([
   'ownership',
   'minutes',
   'points',
+  'xPts',
   'goals',
   'assists',
   'xG',
@@ -342,6 +344,7 @@ function getNumericValue(row: PlayerStatsRowModel, key: Exclude<SortableColumnKe
 
   if (key === 'minutes') return row.minutes;
   if (key === 'points') return row.points;
+  if (key === 'xPts') return row.xPts;
   if (key === 'goals') return row.goals;
   if (key === 'assists') return row.assists;
   if (key === 'xG') return row.xG;
@@ -371,6 +374,7 @@ function renderCell(row: PlayerStatsRowModel, column: PlayerStatsColumnKey) {
   if (column === 'ownership') return row.ownership;
   if (column === 'minutes') return row.minutes;
   if (column === 'points') return row.points;
+  if (column === 'xPts') return row.xPts.toFixed(1);
   if (column === 'goals') return row.goals;
   if (column === 'assists') return row.assists;
   if (column === 'xG') return row.xG.toFixed(2);

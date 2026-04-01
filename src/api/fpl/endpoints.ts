@@ -33,7 +33,6 @@ export const fplEndpoints = {
     playerPhoto: (code: number | string, size: "110x140" | "250x250" | "60x60" = "110x140") =>
         `${PL_RESOURCES}/${size}/${code}.png`,
 
-    // Team badges (use team `code`, NOT `id`) — include size segment to use the `size` param
-    teamBadge: (teamCode: number | string, size: "t40" | "t80" | "t110" = "t80") =>
-        `${PL_BADGES}/${size}/${teamCode}.svg`,
+    // Team badges (use team `code`, NOT `id`) — PL CDN uses `/badges/{code}.svg` (no size segment).
+    teamBadge: (teamCode: number | string) => `${PL_BADGES}/${teamCode}.svg`,
 };

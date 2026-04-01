@@ -1,5 +1,5 @@
-import { Avatar, Badge, Box, HStack, Stack, Text } from '@chakra-ui/react';
-import { type FplBootstrapElement, getPlayerPhotoUrl } from '../../api/fpl/fpl';
+import { Badge, Box, HStack, Stack, Text } from '@chakra-ui/react';
+import type { FplBootstrapElement } from '../../api/fpl/fpl';
 import {
   getTopPlayersByMetric,
   parseStatNumber,
@@ -7,6 +7,7 @@ import {
   type TeamAbbreviationMap,
 } from '../../utils/playerStatsFormat';
 import { DashboardCard, DashboardHeader, cardScrollSx } from '../ui/dashboard';
+import PlayerHeadshot from './PlayerHeadshot';
 
 export type LeaderboardCardKey = 'goals' | 'assists' | 'xg' | 'xgi' | 'cleanSheets';
 
@@ -160,13 +161,10 @@ const PlayerLeaderboardCards = ({ cards }: PlayerLeaderboardCardsProps) => {
                       >
                         #{rank}
                       </Badge>
-                      <Avatar
-                        size={isTopRank ? 'sm' : 'xs'}
-                        src={getPlayerPhotoUrl(leader.photoCode, '60x60')}
+                      <PlayerHeadshot
+                        code={leader.photoCode}
                         name={leader.name}
-                        bg="slate.700"
-                        color="white"
-                        ignoreFallback={false}
+                        size={isTopRank ? 'md' : 'sm'}
                       />
                       <Box minW={0}>
                         <Text
