@@ -26,6 +26,11 @@ export interface PredictionsData {
   fixturesByName: Map<string, PlayerFixture>;
 }
 
+const EMPTY_PREDICTIONS: PredictionPlayer[] = [];
+const EMPTY_PREDICTION_MAP = new Map<string, PredictionPlayer>();
+const EMPTY_FIXTURE_BY_PLAYER = new Map<number, PlayerFixture>();
+const EMPTY_FIXTURE_BY_NAME = new Map<string, PlayerFixture>();
+
 // ── helpers ──
 
 const norm = (s: string): string =>
@@ -55,16 +60,6 @@ export function usePredictionsData(gw: number | null): PredictionsData {
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState<string | null>(null);
 
-  const resetData = useCallback(() => {
-    setAllPredictions([]);
-    setByNameTeam(new Map());
-    setByName(new Map());
-    setFixturesByPlayer(new Map());
-    setFixturesByName(new Map());
-    setLoading(false);
-    setError(null);
-  }, []);
-
   const startLoading = useCallback(() => {
     setLoading(true);
     setError(null);
@@ -92,7 +87,6 @@ export function usePredictionsData(gw: number | null): PredictionsData {
 
   useEffect(() => {
     if (!gw || gw <= 0) {
-      resetData();
       return;
     }
 
@@ -157,7 +151,7 @@ export function usePredictionsData(gw: number | null): PredictionsData {
 
     void load();
     return () => { cancelled = true; };
-  }, [gw, resetData, startLoading, applyLoadedData, applyError]);
+  }, [gw, startLoading, applyLoadedData, applyError]);
 
   /**
    * Best-effort lookup: try name+team first, then name-only.
@@ -180,6 +174,18 @@ export function usePredictionsData(gw: number | null): PredictionsData {
     },
     [byNameTeam, byName],
   );
+
+  if (!gw || gw <= 0) {
+    return {
+      loading: false,
+      error: null,
+      lookupPrediction,
+      predictionsByName: EMPTY_PREDICTION_MAP,
+      allPredictions: EMPTY_PREDICTIONS,
+      fixturesByPlayer: EMPTY_FIXTURE_BY_PLAYER,
+      fixturesByName: EMPTY_FIXTURE_BY_NAME,
+    };
+  }
 
   return {
     loading,

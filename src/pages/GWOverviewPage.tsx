@@ -29,9 +29,11 @@ import {
 } from '../data/gwOverviewMocks';
 import { useTeamId } from '../context/TeamIdContext';
 import { useFplData } from '../hooks/useFplData';
+import { useNavigate } from 'react-router-dom';
 
 const GWOverviewPage = () => {
   const { teamId } = useTeamId();
+  const navigate = useNavigate();
   const [selectedGW, setSelectedGW] = useState<number | null>(null);
   const fpl = useFplData(teamId, selectedGW ?? undefined);
 
@@ -134,7 +136,15 @@ const GWOverviewPage = () => {
           <Stack spacing={6}>
             <StatsStrip stats={stats} />
             <Box ref={pitchRef}>
-              <PitchCard squad={squad} />
+              <PitchCard
+                squad={squad}
+                onPlayerClick={(player) => {
+                  // Guard: only navigate when a valid numeric id is present
+                  const id = player?.id;
+                  if (id == null || typeof id !== 'number' || Number.isNaN(id)) return;
+                  navigate(`/players/${id}`);
+                }}
+              />
             </Box>
             <Box ref={aiSummaryRef}>
               <AISummaryCard gwInfo={gwInfo} summary={mockAISummary} />

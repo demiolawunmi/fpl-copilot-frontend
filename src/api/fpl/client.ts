@@ -1,6 +1,6 @@
 import { debugLog } from "./debug";
 
-export async function fetchJson<T = any>(url: string): Promise<T> {
+export async function fetchJson<T = unknown>(url: string): Promise<T> {
     debugLog("[FPL] GET", url);
 
     const res = await fetch(url, {

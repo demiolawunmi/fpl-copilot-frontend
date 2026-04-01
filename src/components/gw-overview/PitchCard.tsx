@@ -77,6 +77,19 @@ const PlayerChip = ({
       w={{ base: '60px', sm: '81px' }}
       cursor={onClick ? 'pointer' : undefined}
       onClick={onClick}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={(e) => {
+        if (onClick && (e.key === 'Enter' || e.key === ' ')) {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+      _focusVisible={{
+        outline: '2px solid',
+        outlineColor: 'blue.400',
+        outlineOffset: '2px',
+      }}
       transition="transform 0.15s, box-shadow 0.15s"
       transform={isSelected ? 'scale(1.08)' : undefined}
       boxShadow={isSelected ? '0 0 0 2px rgba(59, 130, 246, 0.7), 0 0 12px rgba(59, 130, 246, 0.35)' : undefined}
@@ -130,7 +143,6 @@ const PlayerChip = ({
           V
         </Center>
       ) : !player.isBench && (onCaptainClick || onViceCaptainClick) ? (
-        // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
         <div
           onClick={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
@@ -342,4 +354,3 @@ function PitchLines() {
 }
 
 export default PitchCard;
-

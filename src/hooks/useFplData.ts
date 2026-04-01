@@ -78,6 +78,18 @@ export interface FplData {
   myTeam: MyTeamResponse | null;
 }
 
+const NO_TEAM_ID_STATE: FplData = {
+  loading: false,
+  error: 'No team ID',
+  gwInfo: null,
+  stats: null,
+  squad: [],
+  fixtures: [],
+  currentGW: 0,
+  bootstrap: null,
+  myTeam: null,
+};
+
 export function useFplData(teamId: string | null, gwOverride?: number): FplData {
   const [state, setState] = useState<FplData>({
     loading: true,
@@ -93,7 +105,6 @@ export function useFplData(teamId: string | null, gwOverride?: number): FplData 
 
   useEffect(() => {
     if (!teamId) {
-      setState((s) => ({ ...s, loading: false, error: 'No team ID' }));
       return;
     }
 
@@ -299,6 +310,10 @@ export function useFplData(teamId: string | null, gwOverride?: number): FplData 
       cancelled = true;
     };
   }, [teamId, gwOverride]);
+
+  if (!teamId) {
+    return NO_TEAM_ID_STATE;
+  }
 
   return state;
 }
