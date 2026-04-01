@@ -694,8 +694,14 @@ const CommandCenterPage = () => {
                         onPlayerClick={handleSandboxPlayerClick}
                         selectedPlayerId={swapSelection}
                         swapHint="Tap another player to swap (bench ↔ starting XI)"
-                        onSetCaptain={(p) => handleSetCaptain(p.id)}
-                        onSetViceCaptain={(p) => handleSetViceCaptain(p.id)}
+                        onSetCaptain={(p) => {
+                          if (p.id == null) return;
+                          handleSetCaptain(p.id);
+                        }}
+                        onSetViceCaptain={(p) => {
+                          if (p.id == null) return;
+                          handleSetViceCaptain(p.id);
+                        }}
                       />
                     )}
                     <SandboxCharts squad={currentSandboxSquad} />

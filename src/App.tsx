@@ -6,6 +6,7 @@ import LoginPage from './pages/LoginPage';
 import HomePage from './pages/HomePage';
 import GWOverviewPage from './pages/GWOverviewPage';
 import PlayersPage from './pages/PlayersPage';
+import PlayerDetailPage from './pages/PlayerDetailPage';
 import FixturesPage from './pages/FixturesPage';
 import CommandCenterPage from './pages/CommandCenterPage';
 import { useTeamId } from './context/TeamIdContext';
@@ -15,10 +16,10 @@ import { useEffect, useState } from 'react';
 function App() {
   const { teamId } = useTeamId();
   const [teamName, setTeamName] = useState<string | null>(null);
+  const visibleTeamName = teamId ? teamName : null;
 
   useEffect(() => {
     if (!teamId) {
-      setTeamName(null);
       return;
     }
 
@@ -27,7 +28,7 @@ function App() {
 
   return (
     <Box minH="100vh" display="flex" flexDirection="column" bg="slate.950">
-      {teamId && <Navbar teamName={teamName} />}
+      {teamId && <Navbar teamName={visibleTeamName} />}
 
       <Routes>
         <Route path="/login" element={<LoginPage />} />
@@ -36,6 +37,7 @@ function App() {
           <Route path="/gw-overview" element={<GWOverviewPage />} />
           <Route path="/command-center" element={<CommandCenterPage />} />
           <Route path="/players" element={<PlayersPage />} />
+          <Route path="/players/:playerId" element={<PlayerDetailPage />} />
           <Route path="/fixtures" element={<FixturesPage />} />
         </Route>
       </Routes>

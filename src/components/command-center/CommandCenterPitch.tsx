@@ -1,4 +1,5 @@
 import { Box, Button, Center, Flex, HStack, SimpleGrid, Stack, Text } from '@chakra-ui/react';
+import { useNavigate } from 'react-router-dom';
 import type { EnhancedPlayer } from '../../data/commandCenterMocks';
 import { DashboardCard } from '../ui/dashboard';
 
@@ -8,6 +9,7 @@ interface Props {
 }
 
 const CommandCenterPitch = ({ squad, onSetCaptain }: Props) => {
+  const navigate = useNavigate();
   const starters = squad.filter((p) => !p.isBench);
   const bench = squad.filter((p) => p.isBench);
 
@@ -15,6 +17,12 @@ const CommandCenterPitch = ({ squad, onSetCaptain }: Props) => {
   const def = starters.filter((p) => p.position === 'DEF');
   const mid = starters.filter((p) => p.position === 'MID');
   const fwd = starters.filter((p) => p.position === 'FWD');
+
+  const handlePlayerClick = (player: EnhancedPlayer) => {
+    const id = player?.id;
+    if (id == null || typeof id !== 'number' || Number.isNaN(id)) return;
+    navigate(`/players/${id}`);
+  };
 
   return (
     <DashboardCard>
@@ -27,13 +35,13 @@ const CommandCenterPitch = ({ squad, onSetCaptain }: Props) => {
       <Box position="relative" px={{ base: 3, sm: 6, lg: 8 }} py={{ base: 4, sm: 6 }} style={{ background: 'repeating-linear-gradient(180deg, #1a3d1a 0px, #1a3d1a 60px, #1f4a1f 60px, #1f4a1f 120px)' }}>
         <PitchLines />
         <Stack position="relative" spacing={5} align="center">
-          <PitchRow players={gk} onSetCaptain={onSetCaptain} />
-          <PitchRow players={def} onSetCaptain={onSetCaptain} />
-          <PitchRow players={mid} onSetCaptain={onSetCaptain} />
-          <PitchRow players={fwd} onSetCaptain={onSetCaptain} />
+          <PitchRow players={gk} onSetCaptain={onSetCaptain} onPlayerClick={handlePlayerClick} />
+          <PitchRow players={def} onSetCaptain={onSetCaptain} onPlayerClick={handlePlayerClick} />
+          <PitchRow players={mid} onSetCaptain={onSetCaptain} onPlayerClick={handlePlayerClick} />
+          <PitchRow players={fwd} onSetCaptain={onSetCaptain} onPlayerClick={handlePlayerClick} />
           <Box mt={2} w="full" rounded="xl" bg="rgba(15, 23, 42, 0.8)" px={4} py={3}>
             <Text mb={2} textAlign="center" fontSize="10px" fontWeight="semibold" textTransform="uppercase" letterSpacing="widest" color="slate.500">Bench</Text>
-            <BenchRow players={bench} />
+            <BenchRow players={bench} onPlayerClick={handlePlayerClick} />
           </Box>
         </Stack>
       </Box>
@@ -41,23 +49,23 @@ const CommandCenterPitch = ({ squad, onSetCaptain }: Props) => {
   );
 };
 
-const PitchRow = ({ players, onSetCaptain }: { players: EnhancedPlayer[]; onSetCaptain: (id: number) => void }) => (
+const PitchRow = ({ players, onSetCaptain, onPlayerClick }: { players: EnhancedPlayer[]; onSetCaptain: (id: number) => void; onPlayerClick?: (player: EnhancedPlayer) => void }) => (
   <SimpleGrid columns={Math.max(players.length, 1)} spacingX={{ base: 3, sm: 6 }} spacingY={{ base: 3, sm: 4 }} w="full" placeItems="center">
     {players.map((p) => (
-      <PlayerChip key={p.id} player={p} onSetCaptain={onSetCaptain} />
+      <PlayerChip key={p.id} player={p} onSetCaptain={onSetCaptain} onPlayerClick={onPlayerClick} />
     ))}
   </SimpleGrid>
 );
 
-const BenchRow = ({ players }: { players: EnhancedPlayer[] }) => (
+const BenchRow = ({ players, onPlayerClick }: { players: EnhancedPlayer[]; onPlayerClick?: (player: EnhancedPlayer) => void }) => (
   <SimpleGrid columns={Math.max(players.length, 1)} spacingX={{ base: 3, sm: 6 }} spacingY={{ base: 3, sm: 4 }} w="full" placeItems="center">
     {players.map((p) => (
-      <PlayerChip key={p.id} player={p} />
+      <PlayerChip key={p.id} player={p} onPlayerClick={onPlayerClick} />
     ))}
   </SimpleGrid>
 );
 
-const PlayerChip = ({ player, onSetCaptain }: { player: EnhancedPlayer; onSetCaptain?: (id: number) => void }) => {
+const PlayerChip = ({ player, onSetCaptain, onPlayerClick }: { player: EnhancedPlayer; onSetCaptain?: (id: number) => void; onPlayerClick?: (player: EnhancedPlayer) => void }) => {
   const minutesColor = player.minutesRisk === 'Safe' ? 'brand.400' : player.minutesRisk === 'Risk' ? 'orange.300' : 'slate.400';
   const injuryBadge = player.injuryStatus !== 'Available';
   const chipBg = player.injuryStatus === 'Injured'
@@ -74,6 +82,11 @@ const PlayerChip = ({ player, onSetCaptain }: { player: EnhancedPlayer; onSetCap
       : player.injuryStatus === 'Suspended'
         ? 'yellow.400'
         : 'whiteAlpha.300';
+  const handleClick = () => {
+    if (onPlayerClick) onPlayerClick(player);
+    if (onSetCaptain) onSetCaptain(player.id);
+  };
+  const isClickable = Boolean(onPlayerClick || onSetCaptain);
 
   return (
     <Stack spacing={1} align="center" w={{ base: '84px', sm: '96px' }}>
@@ -89,8 +102,18 @@ const PlayerChip = ({ player, onSetCaptain }: { player: EnhancedPlayer; onSetCap
           fontWeight="bold"
           color="white"
           textTransform="uppercase"
-          cursor={onSetCaptain ? 'pointer' : 'default'}
-          onClick={() => onSetCaptain?.(player.id)}
+          cursor={isClickable ? 'pointer' : 'default'}
+          onClick={isClickable ? handleClick : undefined}
+          role={isClickable ? 'button' : undefined}
+          tabIndex={isClickable ? 0 : undefined}
+          onKeyDown={isClickable ? (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              handleClick();
+            }
+          } : undefined}
+          _focusVisible={{ outline: 'none', ring: 2, ringColor: 'brand.400', ringOffset: 2, ringOffsetColor: 'gray.900' }}
+          transition="all 0.2s"
         >
           {player.name.slice(0, 3)}
         </Center>

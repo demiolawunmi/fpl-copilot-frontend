@@ -50,7 +50,10 @@ const Navbar = ({ teamName }: NavbarProps) => {
 
             <HStack spacing={2} wrap="wrap">
               {navLinks.map(({ to, label }) => {
-                const isActive = location.pathname === to;
+                const isPlayersLink = to === '/players';
+                const isActive = isPlayersLink
+                  ? location.pathname === '/players' || location.pathname.startsWith('/players/')
+                  : location.pathname === to;
                 return (
                   <Button
                     key={to}

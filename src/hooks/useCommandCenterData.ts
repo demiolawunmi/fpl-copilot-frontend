@@ -70,6 +70,17 @@ export interface CommandCenterData {
   myTeam: MyTeamResponse | null;
 }
 
+const NO_TEAM_ID_STATE: CommandCenterData = {
+  loading: false,
+  error: 'No team ID',
+  nextGW: 0,
+  gwInfo: null,
+  squad: [],
+  fixtures: [],
+  bootstrap: null,
+  myTeam: null,
+};
+
 export function useCommandCenterData(teamId: string | null): CommandCenterData {
   const [state, setState] = useState<CommandCenterData>({
     loading: true,
@@ -88,7 +99,6 @@ export function useCommandCenterData(teamId: string | null): CommandCenterData {
 
   useEffect(() => {
     if (!teamId) {
-      commitState((s) => ({ ...s, loading: false, error: 'No team ID' }));
       return;
     }
 
@@ -252,6 +262,9 @@ export function useCommandCenterData(teamId: string | null): CommandCenterData {
     };
   }, [teamId, commitState]);
 
+  if (!teamId) {
+    return NO_TEAM_ID_STATE;
+  }
+
   return state;
 }
-
