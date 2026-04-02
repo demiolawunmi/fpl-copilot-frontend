@@ -10,6 +10,48 @@ import { debugLog } from "../fpl/debug";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "";
 
+export interface ApiError {
+  name: "ApiError";
+  message: string;
+  status: number;
+  statusText: string;
+  method: string;
+  path: string;
+  details?: unknown;
+  bodyText?: string;
+}
+
+function buildApiError(params: {
+  status: number;
+  statusText: string;
+  method: string;
+  path: string;
+  details?: unknown;
+  bodyText?: string;
+}): ApiError {
+  const hint = params.bodyText ? ` — ${params.bodyText}` : "";
+  return {
+    name: "ApiError",
+    message: `Backend request failed: ${params.status} ${params.statusText}${hint}`,
+    status: params.status,
+    statusText: params.statusText,
+    method: params.method,
+    path: params.path,
+    details: params.details,
+    bodyText: params.bodyText,
+  };
+}
+
+export function isApiError(error: unknown): error is ApiError {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "name" in error &&
+    (error as { name?: unknown }).name === "ApiError" &&
+    "status" in error
+  );
+}
+
 export async function backendFetch<T = unknown>(
   path: string,
   init?: RequestInit,
@@ -30,12 +72,27 @@ export async function backendFetch<T = unknown>(
   });
 
   if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    debugLog("[BACKEND] ERROR", res.status, text);
-    const hint = text.length > 500 ? `${text.slice(0, 500)}…` : text;
-    throw new Error(
-      `Backend request failed: ${res.status} ${res.statusText}${hint ? ` — ${hint}` : ""}`,
-    );
+    const rawText = await res.text().catch(() => "");
+    const bodyText = rawText.length > 500 ? `${rawText.slice(0, 500)}...` : rawText;
+    let details: unknown;
+
+    try {
+      details = rawText ? JSON.parse(rawText) : undefined;
+    } catch {
+      details = undefined;
+    }
+
+    const apiError = buildApiError({
+      status: res.status,
+      statusText: res.statusText,
+      method,
+      path,
+      details,
+      bodyText: bodyText || undefined,
+    });
+
+    debugLog("[BACKEND] ERROR", apiError.status, apiError);
+    throw apiError;
   }
 
   const data = (await res.json()) as T;

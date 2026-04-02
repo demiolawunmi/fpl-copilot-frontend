@@ -73,9 +73,10 @@ export interface RecommendedTransferItem {
 }
 
 export interface ModelSource {
-  id: 'airsenal' | 'elo' | 'blend';
+  id: string;
   name: string;
-  weight?: number;
+  weight: number;
+  backendField?: 'airsenal' | 'fplcopilot';
 }
 
 export interface ChatMessage {
@@ -445,9 +446,8 @@ export const mockRecommendedTransfers: RecommendedTransferItem[] = [
 ];
 
 export const mockModelSources: ModelSource[] = [
-  { id: 'airsenal', name: 'AIrsenal', weight: 70 },
-  { id: 'elo', name: 'ELO Plugin', weight: 30 },
-  { id: 'blend', name: 'Blended (70/30)' },
+  { id: 'airsenal', name: 'AIrsenal', weight: 30, backendField: 'airsenal' },
+  { id: 'elo', name: 'ELO', weight: 70, backendField: 'fplcopilot' },
 ];
 
 export const mockVideoInsights: VideoInsight[] = [

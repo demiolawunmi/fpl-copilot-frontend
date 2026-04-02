@@ -19,6 +19,13 @@ const RecommendedTransfersList = ({ transfers, onApplyTransfer }: Props) => {
     <DashboardCard>
       <DashboardHeader title="Recommended Transfers" description="AI-suggested moves for this gameweek" />
       <Stack px={5} py={4} spacing={3} maxH="24rem" overflowY="auto" sx={cardScrollSx}>
+        {transfers.length === 0 ? (
+          <Box py={2}>
+            <Text fontSize="sm" color="slate.400">
+              No transfer recommendations available yet. Try applying a model blend to generate suggestions.
+            </Text>
+          </Box>
+        ) : null}
         {transfers.map((transfer, idx) => (
           <Box key={idx} pb={3} borderBottomWidth={idx === transfers.length - 1 ? '0' : '1px'} borderColor="whiteAlpha.100">
             <HStack align="center" justify="space-between" gap={3}>

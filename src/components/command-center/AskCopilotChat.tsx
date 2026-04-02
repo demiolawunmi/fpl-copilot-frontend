@@ -1,8 +1,13 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Box, Button, HStack, Input, Stack, Text } from '@chakra-ui/react';
+import type { CopilotHybridResultPayload } from '../../api/backend';
 import { DashboardCard, DashboardHeader, cardScrollSx } from '../ui/dashboard';
 
-const AskCopilotChat = () => {
+interface Props {
+  hybridPayload: CopilotHybridResultPayload | null;
+}
+
+const AskCopilotChat = ({ hybridPayload }: Props) => {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([
     {
@@ -12,6 +17,13 @@ const AskCopilotChat = () => {
     },
   ]);
 
+  const backendAnswer = useMemo(() => {
+    if (!hybridPayload?.ask_copilot) return null;
+    const { answer, rationale } = hybridPayload.ask_copilot;
+    const rationaleText = rationale.length > 0 ? '\n\nKey points:\n' + rationale.map((r, i) => `${i + 1}. ${r}`).join('\n') : '';
+    return `${answer}${rationaleText}`;
+  }, [hybridPayload]);
+
   const handleSend = () => {
     if (!input.trim()) return;
 
@@ -20,8 +32,8 @@ const AskCopilotChat = () => {
     setInput('');
 
     setTimeout(() => {
-      const response =
-        "Based on your sandbox state and current squad, here's my recommendation:\n\n✓ Palmer is your best captain choice (7.8 xPts)\n✓ Consider benching Saka due to injury\n⚠ Risk: Limited bench depth if injuries occur\n\n[This is a stubbed response. Full AI integration coming soon!]";
+      const response = backendAnswer ??
+        "Based on your sandbox state and current squad, here's my recommendation:\n\n✓ Palmer is your best captain choice (7.8 xPts)\n✓ Consider benching Saka due to injury\n⚠ Risk: Limited bench depth if injuries occur\n\n[Apply a model blend to get AI-powered insights!]";
       setMessages((prev) => [...prev, { role: 'assistant', content: response }]);
     }, 1000);
   };

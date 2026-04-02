@@ -1,4 +1,5 @@
-export { backendFetch } from "./client";
+export { backendFetch, isApiError } from "./client";
+export type { ApiError } from "./client";
 export { getMyTeam } from "./myTeam";
 export type {
   MyTeamResponse,
@@ -44,3 +45,25 @@ export type {
   FdrFixtureMetrics,
 } from "./fdr";
 
+export {
+  submitCopilotBlendJob,
+  pollCopilotBlendJob,
+  getCopilotBlendJobStatus,
+  getCopilotBlendJobResult,
+} from "./blendJobs";
+export type {
+  CopilotBlendJobStatus,
+  CopilotSourceWeights,
+  CopilotBlendSubmitRequest,
+  CopilotBlendSubmitAcceptedResponse,
+  CopilotHybridCore,
+  CopilotTransferPlayerRef,
+  CopilotRecommendedTransfer,
+  CopilotAskCopilotResponse,
+  CopilotDegradedMode,
+  CopilotHybridResultPayload,
+  CopilotErrorField,
+  CopilotErrorDetail,
+  CopilotErrorResponse,
+  CopilotBlendJobStatusResponse,
+} from "./blendJobs";
