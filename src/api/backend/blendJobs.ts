@@ -5,6 +5,7 @@ export type CopilotBlendJobStatus = "queued" | "running" | "completed" | "failed
 export interface CopilotSourceWeights {
   fplcopilot: number;
   airsenal: number;
+  elo?: number; // optional to remain backward compatible with older callers
 }
 
 export interface CopilotBlendSubmitRequest {

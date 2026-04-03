@@ -75,6 +75,7 @@ import {
   type CopilotErrorResponse,
   type CopilotHybridResultPayload,
 } from '../api/backend';
+// Note: avoid importing CopilotSourceWeights as a named type to prevent unused-type diagnostics
 import { elementTypeToPosition } from '../api/fpl/fpl';
 
 type Tab = 'pick-team' | 'sandbox';
@@ -467,16 +468,20 @@ const CommandCenterPage = () => {
       return;
     }
 
-    const sourceWeights = modelSources.reduce<Record<'fplcopilot' | 'airsenal', number>>((acc, source) => {
-      if (!source.backendField) {
-        return acc;
-      }
-      acc[source.backendField] = source.weight / 100;
-      return acc;
-    }, {
+    // Build the payload shape expected by the backend API
+    const sourceWeights: Record<'fplcopilot' | 'airsenal' | 'elo', number> = {
       fplcopilot: 0,
       airsenal: 0,
-    });
+      elo: 0,
+    };
+
+    for (const source of modelSources) {
+      if (!source.backendField) continue;
+      // backendField is one of 'fplcopilot' | 'airsenal' | 'elo'
+      // assign as number (fractional weight between 0 and 1 expected by backend)
+      const key = source.backendField as 'fplcopilot' | 'airsenal' | 'elo';
+      sourceWeights[key] = source.weight / 100;
+    }
 
     const runId = Date.now();
     activeBlendPollRunRef.current = runId;
