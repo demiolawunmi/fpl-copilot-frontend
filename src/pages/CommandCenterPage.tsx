@@ -71,11 +71,11 @@ import {
   submitCopilotBlendJob,
   pollCopilotBlendJob,
   isApiError,
+  type CopilotSourceWeights,
   type CopilotBlendJobStatusResponse,
   type CopilotErrorResponse,
   type CopilotHybridResultPayload,
 } from '../api/backend';
-// Note: avoid importing CopilotSourceWeights as a named type to prevent unused-type diagnostics
 import { elementTypeToPosition } from '../api/fpl/fpl';
 
 type Tab = 'pick-team' | 'sandbox';
@@ -468,19 +468,10 @@ const CommandCenterPage = () => {
       return;
     }
 
-    // Build the payload shape expected by the backend API
-    const sourceWeights: Record<'fplcopilot' | 'airsenal' | 'elo', number> = {
-      fplcopilot: 0,
-      airsenal: 0,
-      elo: 0,
-    };
-
+    const sourceWeights: Record<string, number> = {};
     for (const source of modelSources) {
       if (!source.backendField) continue;
-      // backendField is one of 'fplcopilot' | 'airsenal' | 'elo'
-      // assign as number (fractional weight between 0 and 1 expected by backend)
-      const key = source.backendField as 'fplcopilot' | 'airsenal' | 'elo';
-      sourceWeights[key] = source.weight / 100;
+      sourceWeights[source.backendField] = source.weight / 100;
     }
 
     const runId = Date.now();
@@ -495,7 +486,7 @@ const CommandCenterPage = () => {
       const accepted = await submitCopilotBlendJob({
         schema_version: BLEND_SCHEMA_VERSION,
         correlation_id: correlationId,
-        source_weights: sourceWeights,
+        source_weights: sourceWeights as unknown as CopilotSourceWeights,
         task: 'hybrid',
         force_refresh: true,
       });
