@@ -1,28 +1,38 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { Box, Button, HStack, Input, Stack, Text } from '@chakra-ui/react';
 import type { CopilotHybridResultPayload } from '../../api/backend';
 import { DashboardCard, DashboardHeader, cardScrollSx } from '../ui/dashboard';
 
 interface Props {
   hybridPayload: CopilotHybridResultPayload | null;
+  // Blend apply phase used to present pending state to the user
+  applyPhase?: 'idle' | 'submitting' | 'queued' | 'running' | 'completed' | 'failed';
 }
 
-const AskCopilotChat = ({ hybridPayload }: Props) => {
+const AskCopilotChat = ({ hybridPayload, applyPhase = 'idle' }: Props) => {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([
     {
       role: 'assistant',
       content:
-        "👋 Hi! I'm your FPL Copilot. Ask me questions like:\n\n• Why is Palmer recommended as captain?\n• Should I transfer out Saka?\n• What's the risk of this move?",
+        "👋 Hi! I'm your FPL Copilot. Ask me squad or transfer questions.\n\nIf AI insights are not available, apply a model blend from the AI Sandbox to generate AI-powered recommendations.",
     },
   ]);
 
-  const backendAnswer = useMemo(() => {
-    if (!hybridPayload?.ask_copilot) return null;
+  let backendAnswer: string | null = null;
+  if (hybridPayload?.ask_copilot) {
     const { answer, rationale } = hybridPayload.ask_copilot;
     const rationaleText = rationale.length > 0 ? '\n\nKey points:\n' + rationale.map((r, i) => `${i + 1}. ${r}`).join('\n') : '';
-    return `${answer}${rationaleText}`;
-  }, [hybridPayload]);
+    
+    // Check for valid-zero (empty recommended_transfers but not degraded)
+    const isValidZero = hybridPayload.recommended_transfers && hybridPayload.recommended_transfers.length === 0 && !hybridPayload.degraded_mode?.is_degraded;
+    
+    const validZeroNote = isValidZero
+      ? 'Note: The model produced no confident transfer suggestions (valid zero).\n\n'
+      : '';
+
+    backendAnswer = `${validZeroNote}${answer}${rationaleText}`;
+  }
 
   const handleSend = () => {
     if (!input.trim()) return;
@@ -32,10 +42,22 @@ const AskCopilotChat = ({ hybridPayload }: Props) => {
     setInput('');
 
     setTimeout(() => {
-      const response = backendAnswer ??
-        "Based on your sandbox state and current squad, here's my recommendation:\n\n✓ Palmer is your best captain choice (7.8 xPts)\n✓ Consider benching Saka due to injury\n⚠ Risk: Limited bench depth if injuries occur\n\n[Apply a model blend to get AI-powered insights!]";
+      let response = '';
+
+      if (backendAnswer) {
+        response = backendAnswer;
+      } else if (hybridPayload?.degraded_mode?.is_degraded) {
+        const code = hybridPayload.degraded_mode.code || 'UNKNOWN';
+        const msg = hybridPayload.degraded_mode.message || 'The assistant could not produce reliable model suggestions.';
+        response = `AI insights are degraded (code: ${code}). ${msg}`;
+      } else if (applyPhase === 'submitting' || applyPhase === 'queued' || applyPhase === 'running') {
+        response = 'A model blend is currently in progress...';
+      } else {
+        response = 'No AI insights available yet. Apply a model blend to get AI-powered recommendations.';
+      }
+
       setMessages((prev) => [...prev, { role: 'assistant', content: response }]);
-    }, 1000);
+    }, 300);
   };
 
   return (

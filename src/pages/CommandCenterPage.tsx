@@ -245,20 +245,56 @@ const CommandCenterPage = () => {
   const isBlendInvalid = blendTotal > 100;
 
   const blendStatusMessage = useMemo(() => {
+    // Map UI states: valid-zero (no suggestions), degraded (provider/schema fallback), pending/running, failed
     if (blendApplyState.phase === 'completed' && completedBlendPayload) {
       const transferCount = completedBlendPayload.recommended_transfers.length;
       const confidencePct = Math.round(completedBlendPayload.core.confidence * 100);
-      const degradedSuffix = completedBlendPayload.degraded_mode.is_degraded
-        ? ` (${completedBlendPayload.degraded_mode.code ?? 'FALLBACK'})`
-        : '';
-      return `Blend ready: ${transferCount} transfer suggestion(s), ${confidencePct}% confidence${degradedSuffix}.`;
+
+      if (completedBlendPayload.degraded_mode?.is_degraded) {
+        const code = completedBlendPayload.degraded_mode.code ?? 'FALLBACK';
+        const msg = completedBlendPayload.degraded_mode.message ?? '';
+        return (
+          <Text color="orange.300" fontWeight="medium">
+            <Box as="span" mr={1}>⚠️</Box>
+            Degraded Output ({code}): {msg}
+          </Text>
+        );
+      }
+
+      if (transferCount === 0) {
+        // Valid zero: model intentionally returned no confident suggestions
+        return (
+          <Text color="blue.300" fontWeight="medium">
+            <Box as="span" mr={1}>ℹ️</Box>
+            No confident transfer suggestions. Confidence: {confidencePct}%
+          </Text>
+        );
+      }
+
+      return (
+        <Text color="green.300" fontWeight="medium">
+          <Box as="span" mr={1}>✅</Box>
+          Blend ready: {transferCount} transfer suggestion(s), {confidencePct}% confidence.
+        </Text>
+      );
     }
 
-    if (blendApplyState.phase === 'failed' && blendApplyState.error?.error.code) {
-      return `${blendApplyState.message ?? 'Blend job failed.'} [${blendApplyState.error.error.code}]`;
+    if (blendApplyState.phase === 'running' || blendApplyState.phase === 'submitting' || blendApplyState.phase === 'queued') {
+      return <Text color="blue.200">{blendApplyState.message ?? 'Blend job in progress...'}</Text>;
     }
 
-    return blendApplyState.message;
+    if (blendApplyState.phase === 'failed') {
+      const errorCode = blendApplyState.error?.error.code;
+      const baseMsg = blendApplyState.message ?? 'Blend job failed.';
+      return (
+        <Text color="red.300" fontWeight="medium">
+          <Box as="span" mr={1}>❌</Box>
+          {errorCode ? `${baseMsg} [${errorCode}]` : baseMsg}
+        </Text>
+      );
+    }
+
+    return <Text color="slate.300">{blendApplyState.message}</Text>;
   }, [blendApplyState, completedBlendPayload]);
 
   const realSquad = useMemo(() => {
