@@ -71,10 +71,14 @@ import {
   submitCopilotBlendJob,
   pollCopilotBlendJob,
   isApiError,
+  getCopilotBlendSnapshot,
+  getCopilotBlendSnapshotGlobal,
   type CopilotSourceWeights,
   type CopilotBlendJobStatusResponse,
   type CopilotErrorResponse,
   type CopilotHybridResultPayload,
+  type CopilotBlendSubmitRequest,
+  type CopilotBlendSnapshot,
 } from '../api/backend';
 import { elementTypeToPosition } from '../api/fpl/fpl';
 
@@ -142,6 +146,18 @@ const confidenceToTone = (confidence: number): 'good' | 'info' | 'warn' => {
 const sleep = (ms: number) => new Promise<void>((resolve) => {
   window.setTimeout(resolve, ms);
 });
+
+/** Only hydrate saved JSON when it matches the logged-in FPL entry (strict when team id is set). */
+const snapshotMatchesTeam = (
+  snap: CopilotBlendSnapshot,
+  currentTeamId: number | null,
+): boolean => {
+  const st = snap.input?.fpl_team_id;
+  if (currentTeamId != null && currentTeamId > 0) {
+    return typeof st === 'number' && st === currentTeamId;
+  }
+  return st == null;
+};
 
 const createCorrelationId = () => {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -225,6 +241,7 @@ const CommandCenterPage = () => {
   const [sandboxBankDelta, setSandboxBankDelta] = useState(0);
   const [blendApplyState, setBlendApplyState] = useState<BlendApplyUiState>({ phase: 'idle' });
   const [completedBlendPayload, setCompletedBlendPayload] = useState<CopilotHybridResultPayload | null>(null);
+  const [savedBlendInput, setSavedBlendInput] = useState<CopilotBlendSubmitRequest | null>(null);
   const [modelSources, setModelSources] = useState<ModelSource[]>(() => {
     const defaults = mockModelSources.map((source) => ({ ...source }));
     const seeded = parseBlendWeightsFromSearch(location.search, defaults);
@@ -374,6 +391,38 @@ const CommandCenterPage = () => {
   const nextGW = cc.nextGW;
   const teamName = cc.gwInfo?.teamName ?? 'My Team';
 
+  useEffect(() => {
+    let cancelled = false;
+    const parsed = teamId?.trim() ? Number.parseInt(teamId.trim(), 10) : NaN;
+    const currentTeamId = Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+    const gw = nextGW > 0 ? nextGW : 0;
+    if (gw <= 0) return;
+
+    async function loadSnapshot() {
+      try {
+        const snap =
+          currentTeamId != null
+            ? await getCopilotBlendSnapshot(gw, currentTeamId)
+            : await getCopilotBlendSnapshotGlobal(gw);
+        if (cancelled || !snap) return;
+        if (!snapshotMatchesTeam(snap, currentTeamId)) return;
+        setCompletedBlendPayload(snap.result);
+        setSavedBlendInput(snap.input as CopilotBlendSubmitRequest);
+        setBlendApplyState({
+          phase: 'completed',
+          message: 'Loaded saved blend.',
+        });
+      } catch {
+        // Backend offline or not running — keep local state
+      }
+    }
+
+    void loadSnapshot();
+    return () => {
+      cancelled = true;
+    };
+  }, [teamId, nextGW]);
+
   const hybridSummary = useMemo<CommandCenterAISummary>(() => {
     if (!completedBlendPayload) {
       return mockCommandCenterAISummary;
@@ -382,10 +431,11 @@ const CommandCenterPage = () => {
     const ask = completedBlendPayload.ask_copilot;
     const bulletTone = confidenceToTone(ask.confidence);
     const rationaleText = ask.rationale.filter((item) => item.trim().length > 0);
+    const primaryText = (ask.answer?.trim() ?? '') || completedBlendPayload.core.summary;
 
     const bullets = [
       {
-        text: ask.answer,
+        text: primaryText,
         why: rationaleText.join(' ') || completedBlendPayload.core.summary,
         tone: bulletTone,
       },
@@ -410,8 +460,17 @@ const CommandCenterPage = () => {
 
     const teamById = new Map((cc.bootstrap?.teams ?? []).map((team) => [team.id, team]));
 
-    const resolveFromCurrentData = (playerId: number, playerName: string): EnhancedPlayer => {
-      const fromSquad = currentSandboxSquad.find((player) => player.id === playerId)
+    const resolveFromCurrentData = (
+      playerId: number,
+      playerName: string,
+      fplApiId?: number,
+    ): EnhancedPlayer => {
+      const resolvedId = fplApiId ?? playerId;
+      const fromSquad = (fplApiId != null
+        ? currentSandboxSquad.find((player) => player.id === fplApiId)
+          ?? realSquad.find((player) => player.id === fplApiId)
+        : undefined)
+        ?? currentSandboxSquad.find((player) => player.id === playerId)
         ?? realSquad.find((player) => player.id === playerId)
         ?? currentSandboxSquad.find((player) => norm(player.name) === norm(playerName))
         ?? realSquad.find((player) => norm(player.name) === norm(playerName));
@@ -419,12 +478,15 @@ const CommandCenterPage = () => {
       if (fromSquad) {
         return {
           ...fromSquad,
-          id: playerId,
+          id: resolvedId,
           name: playerName,
         };
       }
 
-      const fromBootstrap = (cc.bootstrap?.elements ?? []).find((element) => element.id === playerId)
+      const fromBootstrap = (fplApiId != null
+        ? (cc.bootstrap?.elements ?? []).find((element) => element.id === fplApiId)
+        : undefined)
+        ?? (cc.bootstrap?.elements ?? []).find((element) => element.id === playerId)
         ?? (cc.bootstrap?.elements ?? []).find((element) => norm(element.web_name) === norm(playerName));
 
       const bootstrapTeam = fromBootstrap ? teamById.get(fromBootstrap.team) : undefined;
@@ -433,7 +495,7 @@ const CommandCenterPage = () => {
       const predictedXp = predictions.lookupPrediction(resolvedName, teamAbbr)?.xp ?? 0;
 
       return {
-        id: playerId,
+        id: resolvedId,
         name: resolvedName,
         position: fromBootstrap ? elementTypeToPosition(fromBootstrap.element_type) : 'MID',
         team: bootstrapTeam?.name ?? '',
@@ -447,12 +509,17 @@ const CommandCenterPage = () => {
       };
     };
 
-    return completedBlendPayload.recommended_transfers.map((transfer) => ({
-      playerIn: resolveFromCurrentData(transfer.in.player_id, transfer.in.player_name),
-      playerOut: resolveFromCurrentData(transfer.out.player_id, transfer.out.player_name),
-      xPtsDelta: transfer.projected_points_delta,
-      why: transfer.reason,
-    }));
+    return completedBlendPayload.recommended_transfers.map((transfer) => {
+      const playerIn = resolveFromCurrentData(transfer.in.player_id, transfer.in.player_name, transfer.in.fpl_api_id);
+      const playerOut = resolveFromCurrentData(transfer.out.player_id, transfer.out.player_name, transfer.out.fpl_api_id);
+      const xPtsDelta = Number((playerIn.xPts - playerOut.xPts).toFixed(1));
+      return {
+        playerIn,
+        playerOut,
+        xPtsDelta,
+        why: transfer.reason,
+      };
+    });
   }, [cc.bootstrap, completedBlendPayload, currentSandboxSquad, predictions, realSquad]);
 
   // Sandbox handlers
@@ -510,22 +577,49 @@ const CommandCenterPage = () => {
       sourceWeights[source.backendField] = source.weight / 100;
     }
 
+    const sandboxTransferCount = sandboxActions.filter((action) => action.type === 'transfer').length;
+    const blendFreeTransfers = Math.max(0, teamStatus.freeTransfers - sandboxTransferCount);
+    const blendBank = Number((teamStatus.bank + sandboxBankDelta).toFixed(1));
+    const blendGameweek = nextGW > 0 ? nextGW : undefined;
+    const blendCurrentSquad = currentSandboxSquad.map((player) => ({
+      fpl_api_id: player.id,
+      player_name: player.name,
+      team: player.team,
+      position: player.position,
+      price: player.price,
+      x_pts: player.xPts,
+    }));
+
     const runId = Date.now();
     activeBlendPollRunRef.current = runId;
     const isCurrentRun = () => activeBlendPollRunRef.current === runId;
 
     setCompletedBlendPayload(null);
+    setSavedBlendInput(null);
     setBlendApplyState({ phase: 'submitting', message: 'Submitting blend request...' });
 
     try {
       const correlationId = createCorrelationId();
-      const accepted = await submitCopilotBlendJob({
+      const parsedTeamId = teamId?.trim() ? Number.parseInt(teamId.trim(), 10) : undefined;
+      const fplTeamId =
+        parsedTeamId != null && Number.isFinite(parsedTeamId) && parsedTeamId > 0
+          ? parsedTeamId
+          : undefined;
+
+      const blendRequestBody: CopilotBlendSubmitRequest = {
         schema_version: BLEND_SCHEMA_VERSION,
         correlation_id: correlationId,
         source_weights: sourceWeights as unknown as CopilotSourceWeights,
+        gameweek: blendGameweek,
+        bank: blendBank,
+        free_transfers: blendFreeTransfers,
+        current_squad: blendCurrentSquad,
         task: 'hybrid',
         force_refresh: true,
-      });
+        ...(fplTeamId != null ? { fpl_team_id: fplTeamId } : {}),
+      };
+
+      const accepted = await submitCopilotBlendJob(blendRequestBody);
 
       if (!isCurrentRun()) {
         return;
@@ -574,6 +668,7 @@ const CommandCenterPage = () => {
           }
 
           setCompletedBlendPayload(resultPayload);
+          setSavedBlendInput(blendRequestBody);
           setBlendApplyState({
             phase: 'completed',
             jobId: accepted.job_id,
@@ -625,7 +720,36 @@ const CommandCenterPage = () => {
         retryable: true,
       }));
     }
-  }, [getBlendFailureState, isBlendInvalid, modelSources]);
+  }, [currentSandboxSquad, getBlendFailureState, isBlendInvalid, modelSources, nextGW, sandboxActions, sandboxBankDelta, teamId, teamStatus.bank, teamStatus.freeTransfers]);
+
+  function handleRefreshAISummary() {
+    if (isBlendInvalid) {
+      toast({
+        title: 'Blend weights invalid',
+        description: 'Total exceeds 100%. Open AI Sandbox and reduce source weights before refreshing.',
+        status: 'warning',
+        duration: 6000,
+        isClosable: true,
+      });
+      return;
+    }
+    if (nextGW <= 0) {
+      toast({
+        title: 'Gameweek not ready',
+        description: 'Wait for team data to load, then try again.',
+        status: 'warning',
+        duration: 5000,
+        isClosable: true,
+      });
+      return;
+    }
+    void applyModelBlend();
+  }
+
+  const blendJobBusy =
+    blendApplyState.phase === 'submitting' ||
+    blendApplyState.phase === 'queued' ||
+    blendApplyState.phase === 'running';
 
   useEffect(() => () => {
     activeBlendPollRunRef.current = 0;
@@ -1037,7 +1161,12 @@ const CommandCenterPage = () => {
                       }}
                     />
                   )}
-                  <AICommandSummary summary={hybridSummary} />
+                  <AICommandSummary
+                    summary={hybridSummary}
+                    onRefresh={handleRefreshAISummary}
+                    isRefreshing={blendJobBusy}
+                    disableRefresh={isBlendInvalid || nextGW <= 0}
+                  />
                 </Stack>
               </GridItem>
 
@@ -1127,7 +1256,11 @@ const CommandCenterPage = () => {
                         void applyModelBlend();
                       }}
                     />
-                    <AskCopilotChat hybridPayload={completedBlendPayload} />
+                    <AskCopilotChat
+                      hybridPayload={completedBlendPayload}
+                      blendInput={savedBlendInput}
+                      applyPhase={blendApplyState.phase}
+                    />
                   </Stack>
                 </GridItem>
               </Grid>
