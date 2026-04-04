@@ -76,7 +76,8 @@ export interface ModelSource {
   id: string;
   name: string;
   weight: number;
-  backendField?: 'airsenal' | 'fplcopilot';
+  // backendField describes the field name the backend expects for this source
+  backendField?: 'airsenal' | 'fplcopilot' | 'elo';
 }
 
 export interface ChatMessage {
@@ -447,7 +448,8 @@ export const mockRecommendedTransfers: RecommendedTransferItem[] = [
 
 export const mockModelSources: ModelSource[] = [
   { id: 'airsenal', name: 'AIrsenal', weight: 30, backendField: 'airsenal' },
-  { id: 'elo', name: 'ELO', weight: 70, backendField: 'fplcopilot' },
+  // ELO is now a real, distinct backend source (not mapped to fplcopilot)
+  { id: 'elo', name: 'ELO', weight: 70, backendField: 'elo' },
 ];
 
 export const mockVideoInsights: VideoInsight[] = [

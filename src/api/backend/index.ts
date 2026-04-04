@@ -50,6 +50,11 @@ export {
   pollCopilotBlendJob,
   getCopilotBlendJobStatus,
   getCopilotBlendJobResult,
+  copilotBlendSnapshotPath,
+  copilotBlendSnapshotGlobalPath,
+  getCopilotBlendSnapshot,
+  getCopilotBlendSnapshotGlobal,
+  postCopilotChat,
 } from "./blendJobs";
 export type {
   CopilotBlendJobStatus,
@@ -66,4 +71,8 @@ export type {
   CopilotErrorDetail,
   CopilotErrorResponse,
   CopilotBlendJobStatusResponse,
+  CopilotBlendSnapshot,
+  CopilotChatTurn,
+  CopilotChatRequest,
+  CopilotChatResponse,
 } from "./blendJobs";

@@ -11,7 +11,7 @@ interface Props {
   isBlendInvalid: boolean;
   onModelWeightChange: (modelId: string, nextWeight: number) => void;
   applyStatus: ApplyStatus;
-  statusMessage?: string;
+  statusMessage?: React.ReactNode;
   canRetry?: boolean;
   onApply: () => void;
 }
@@ -117,9 +117,13 @@ const ModelComparisonPanel = ({
                   {tone.label}
                 </Badge>
               </Box>
-              <Text fontSize="sm" color={applyStatus === 'failed' ? 'red.200' : 'slate.200'}>
-                {statusMessage ?? 'Apply to submit blend job and refresh model output.'}
-              </Text>
+              <Box fontSize="sm">
+                {statusMessage ?? (
+                  <Text color="slate.200">
+                    Apply to submit blend job and refresh model output.
+                  </Text>
+                )}
+              </Box>
             </Stack>
           </Box>
         </Stack>
