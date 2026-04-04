@@ -1,73 +1,130 @@
-import { useState } from 'react';
-import { Box, Button, HStack, Input, Stack, Text } from '@chakra-ui/react';
-import type { CopilotHybridResultPayload } from '../../api/backend';
+import { useEffect, useState } from 'react';
+import { Box, Button, HStack, Input, Stack, Text, useToast } from '@chakra-ui/react';
+import type {
+  CopilotBlendSubmitRequest,
+  CopilotHybridResultPayload,
+} from '../../api/backend';
+import { isApiError, postCopilotChat } from '../../api/backend';
 import { DashboardCard, DashboardHeader, cardScrollSx } from '../ui/dashboard';
 
 interface Props {
   hybridPayload: CopilotHybridResultPayload | null;
-  // Blend apply phase used to present pending state to the user
+  /** Last blend job input (from live submit or loaded snapshot) — required for live chat context. */
+  blendInput?: CopilotBlendSubmitRequest | null;
   applyPhase?: 'idle' | 'submitting' | 'queued' | 'running' | 'completed' | 'failed';
 }
 
-const AskCopilotChat = ({ hybridPayload, applyPhase = 'idle' }: Props) => {
+const WELCOME =
+  "👋 Hi! I'm your FPL Copilot. After you apply a model blend, you can ask follow-up questions here — answers use your saved blend context and the live LLM.";
+
+const AskCopilotChat = ({ hybridPayload, blendInput = null, applyPhase = 'idle' }: Props) => {
+  const toast = useToast();
   const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([
-    {
-      role: 'assistant',
-      content:
-        "👋 Hi! I'm your FPL Copilot. Ask me squad or transfer questions.\n\nIf AI insights are not available, apply a model blend from the AI Sandbox to generate AI-powered recommendations.",
-    },
+    { role: 'assistant', content: WELCOME },
   ]);
 
-  let backendAnswer: string | null = null;
-  if (hybridPayload?.ask_copilot) {
-    const { answer, rationale } = hybridPayload.ask_copilot;
-    const rationaleText = rationale.length > 0 ? '\n\nKey points:\n' + rationale.map((r, i) => `${i + 1}. ${r}`).join('\n') : '';
-    
-    // Check for valid-zero (empty recommended_transfers but not degraded)
-    const isValidZero = hybridPayload.recommended_transfers && hybridPayload.recommended_transfers.length === 0 && !hybridPayload.degraded_mode?.is_degraded;
-    
-    const validZeroNote = isValidZero
-      ? 'Note: The model produced no confident transfer suggestions (valid zero).\n\n'
-      : '';
-
-    backendAnswer = `${validZeroNote}${answer}${rationaleText}`;
-  }
+  useEffect(() => {
+    setMessages([{ role: 'assistant', content: WELCOME }]);
+  }, [hybridPayload?.correlation_id]);
 
   const handleSend = () => {
-    if (!input.trim()) return;
+    const trimmed = input.trim();
+    if (!trimmed || loading) return;
 
-    const userMsg = input;
-    setMessages([...messages, { role: 'user', content: userMsg }]);
+    if (!hybridPayload || !blendInput) {
+      toast({
+        title: 'No blend context',
+        description: 'Apply a model blend in the AI Sandbox first (or load a saved session).',
+        status: 'warning',
+        duration: 5000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    if (applyPhase === 'submitting' || applyPhase === 'queued' || applyPhase === 'running') {
+      toast({
+        title: 'Blend in progress',
+        description: 'Wait for the current blend to finish before chatting.',
+        status: 'info',
+        duration: 4000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    const priorForApi = messages.slice(1).map((m) => ({
+      role: m.role,
+      content: m.content,
+    }));
+
     setInput('');
+    setMessages((prev) => [...prev, { role: 'user', content: trimmed }]);
+    setLoading(true);
 
-    setTimeout(() => {
-      let response = '';
-
-      if (backendAnswer) {
-        response = backendAnswer;
-      } else if (hybridPayload?.degraded_mode?.is_degraded) {
-        const code = hybridPayload.degraded_mode.code || 'UNKNOWN';
-        const msg = hybridPayload.degraded_mode.message || 'The assistant could not produce reliable model suggestions.';
-        response = `AI insights are degraded (code: ${code}). ${msg}`;
-      } else if (applyPhase === 'submitting' || applyPhase === 'queued' || applyPhase === 'running') {
-        response = 'A model blend is currently in progress...';
-      } else {
-        response = 'No AI insights available yet. Apply a model blend to get AI-powered recommendations.';
+    void (async () => {
+      try {
+        const res = await postCopilotChat({
+          schema_version: blendInput.schema_version,
+          correlation_id: hybridPayload.correlation_id,
+          message: trimmed,
+          messages: priorForApi,
+          blend_input: blendInput,
+          blend_result: hybridPayload,
+        });
+        setMessages((prev) => [...prev, { role: 'assistant', content: res.answer }]);
+      } catch (err) {
+        let detail = 'Could not reach the assistant. Try again.';
+        if (isApiError(err)) {
+          if (err.status === 503) {
+            const body = err.details as { detail?: string } | undefined;
+            detail = typeof body?.detail === 'string' ? body.detail : 'The LLM is unavailable.';
+          } else if (err.bodyText) {
+            detail = err.bodyText;
+          }
+        }
+        toast({
+          title: 'Chat failed',
+          description: detail,
+          status: 'error',
+          duration: 7000,
+          isClosable: true,
+        });
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: 'assistant',
+            content: `Sorry — ${detail}`,
+          },
+        ]);
+      } finally {
+        setLoading(false);
       }
-
-      setMessages((prev) => [...prev, { role: 'assistant', content: response }]);
-    }, 300);
+    })();
   };
+
+  const canChat =
+    hybridPayload != null &&
+    blendInput != null &&
+    applyPhase !== 'submitting' &&
+    applyPhase !== 'queued' &&
+    applyPhase !== 'running';
 
   return (
     <DashboardCard display="flex" flexDirection="column">
-      <DashboardHeader title="Ask Copilot" description="Get AI-powered advice" />
+      <DashboardHeader title="Ask Copilot" description="Live follow-ups using your blend context" />
       <Box px={5} py={4} maxH="20rem" overflowY="auto" flex="1" sx={cardScrollSx}>
         <Stack spacing={3}>
           {messages.map((msg, idx) => (
             <FlexMessage key={idx} role={msg.role} content={msg.content} />
           ))}
+          {loading ? (
+            <Text fontSize="xs" color="slate.500" px={1}>
+              Thinking…
+            </Text>
+          ) : null}
         </Stack>
       </Box>
       <Box px={5} py={4} borderTopWidth="1px" borderColor="whiteAlpha.100">
@@ -76,10 +133,20 @@ const AskCopilotChat = ({ hybridPayload, applyPhase = 'idle' }: Props) => {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            placeholder="Ask a question..."
+            placeholder={canChat ? 'Ask a question…' : 'Apply a blend to enable chat'}
             size="sm"
+            isDisabled={loading}
           />
-          <Button onClick={handleSend} size="sm" variant="outline" borderColor="rgba(16, 185, 129, 0.22)" color="brand.400" _hover={{ bg: 'rgba(16, 185, 129, 0.12)' }}>
+          <Button
+            onClick={handleSend}
+            size="sm"
+            variant="outline"
+            borderColor="rgba(16, 185, 129, 0.22)"
+            color="brand.400"
+            _hover={{ bg: 'rgba(16, 185, 129, 0.12)' }}
+            isLoading={loading}
+            isDisabled={loading || !canChat}
+          >
             Send
           </Button>
         </HStack>
