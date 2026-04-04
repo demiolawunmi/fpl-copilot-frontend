@@ -3,7 +3,7 @@ import { backendFetch, isApiError, type ApiError } from "./client";
 export type CopilotBlendJobStatus = "queued" | "running" | "completed" | "failed";
 
 export interface CopilotSourceWeights {
-  fplcopilot: number;
+  elo: number;
   airsenal: number;
 }
 
@@ -11,8 +11,23 @@ export interface CopilotBlendSubmitRequest {
   schema_version: string;
   correlation_id: string;
   source_weights: CopilotSourceWeights;
+  gameweek?: number;
+  bank?: number;
+  free_transfers?: number;
+  current_squad?: CopilotCurrentSquadPlayer[];
+  /** FPL entry / team id (same as gw_*_optimization_<id>.json suffix) */
+  fpl_team_id?: number;
   task: "hybrid";
   force_refresh?: boolean;
+}
+
+export interface CopilotCurrentSquadPlayer {
+  fpl_api_id: number;
+  player_name: string;
+  team: string;
+  position: "GK" | "DEF" | "MID" | "FWD";
+  price: number;
+  x_pts: number;
 }
 
 export interface CopilotBlendSubmitAcceptedResponse {
@@ -29,6 +44,7 @@ export interface CopilotHybridCore {
 
 export interface CopilotTransferPlayerRef {
   player_id: number;
+  fpl_api_id?: number;
   player_name: string;
 }
 
@@ -145,4 +161,95 @@ export async function getCopilotBlendJobResult(
 ): Promise<CopilotHybridResultPayload | null> {
   const status = await getCopilotBlendJobStatus(jobId);
   return status.status === "completed" ? status.result : null;
+}
+
+/** Persisted by backend to data/api after each successful blend; served via GET /api/files/… */
+export interface CopilotBlendSnapshot {
+  saved_at: string;
+  job_id: string;
+  correlation_id: string;
+  schema_version: string;
+  input: CopilotBlendSubmitRequest & Record<string, unknown>;
+  result: CopilotHybridResultPayload;
+}
+
+/** File on disk: ``data/api/gw_<gw>_copilot_blend_<fplTeamId>.json`` */
+export function copilotBlendSnapshotPath(gameweek: number, fplTeamId: number): string {
+  return `/api/files/gw_${gameweek}_copilot_blend_${fplTeamId}`;
+}
+
+/** When no ``fpl_team_id`` was sent: ``gw_<gw>_copilot_blend.json`` */
+export function copilotBlendSnapshotGlobalPath(gameweek: number): string {
+  return `/api/files/gw_${gameweek}_copilot_blend`;
+}
+
+/**
+ * Load the last saved blend for this gameweek + FPL entry team id.
+ * Returns null if no file exists (404).
+ */
+export async function getCopilotBlendSnapshot(
+  gameweek: number,
+  fplTeamId: number,
+): Promise<CopilotBlendSnapshot | null> {
+  const path = copilotBlendSnapshotPath(gameweek, fplTeamId);
+  try {
+    return await backendFetch<CopilotBlendSnapshot>(path);
+  } catch (error) {
+    if (isApiError(error) && error.status === 404) {
+      return null;
+    }
+    throw normalizeApiError(error, "GET", path);
+  }
+}
+
+/** Fallback when the job had no fpl_team_id: ``gw_<gw>_copilot_blend.json`` */
+export async function getCopilotBlendSnapshotGlobal(
+  gameweek: number,
+): Promise<CopilotBlendSnapshot | null> {
+  const path = copilotBlendSnapshotGlobalPath(gameweek);
+  try {
+    return await backendFetch<CopilotBlendSnapshot>(path);
+  } catch (error) {
+    if (isApiError(error) && error.status === 404) {
+      return null;
+    }
+    throw normalizeApiError(error, "GET", path);
+  }
+}
+
+export interface CopilotChatTurn {
+  role: "user" | "assistant";
+  content: string;
+}
+
+export interface CopilotChatRequest {
+  schema_version: string;
+  correlation_id: string;
+  message: string;
+  messages: CopilotChatTurn[];
+  blend_input: CopilotBlendSubmitRequest;
+  blend_result: CopilotHybridResultPayload;
+}
+
+export interface CopilotChatResponse {
+  schema_version: string;
+  correlation_id: string;
+  answer: string;
+}
+
+export async function postCopilotChat(
+  body: CopilotChatRequest,
+): Promise<CopilotChatResponse> {
+  const path = "/api/copilot/chat";
+  try {
+    return await backendFetch<CopilotChatResponse>(path, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+  } catch (error) {
+    throw normalizeApiError(error, "POST", path);
+  }
 }

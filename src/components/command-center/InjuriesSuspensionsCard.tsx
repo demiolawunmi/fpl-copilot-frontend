@@ -20,10 +20,15 @@ const suspensionKeywords = /(suspend|suspension|ban|banned|red card|accumulation
 const injuryKeywords = /(injur|knock|illness|fit|fitness|hamstring|groin|ankle|knee|calf|thigh|foot|back|hip|shoulder|muscle|virus|concussion)/i;
 const transferKeywords = /(joined|loan|permanently|transfer|contract|released|left the club|has joined)/i;
 
-const toChance = (item: InjuryNewsPlayer) => item.chance_next_round ?? item.chance_of_playing_next_round ?? item.chance_this_round ?? null;
+const toChance = (item: InjuryNewsPlayer) => {
+  const directChance = item.chance_next_round ?? item.chance_of_playing_next_round ?? item.chance_this_round;
+  if (directChance != null) return directChance;
+  if (item.prob_available == null) return null;
+  return Math.round(item.prob_available * 100);
+};
 
 const isRelevantInjury = (item: InjuryNewsPlayer) => {
-  const news = item.news?.trim() ?? '';
+  const news = item.source_news?.trim() ?? item.news?.trim() ?? '';
   if (!news && toChance(item) == null) return false;
   if (suspensionKeywords.test(news) || injuryKeywords.test(news)) return true;
   if (transferKeywords.test(news)) return false;
@@ -34,7 +39,7 @@ const isRelevantInjury = (item: InjuryNewsPlayer) => {
 const normalizeInjury = (item: InjuryNewsPlayer): InjurySuspension | null => {
   if (!isRelevantInjury(item)) return null;
 
-  const news = item.news?.trim() ?? 'Status update pending';
+  const news = item.source_news?.trim() ?? item.news?.trim() ?? 'Status update pending';
   const chance = toChance(item);
   const rawStatus = item.status?.toLowerCase() ?? '';
 
@@ -55,7 +60,7 @@ const normalizeInjury = (item: InjuryNewsPlayer): InjurySuspension | null => {
 
   return {
     player: item.name ?? item.player_name ?? item.web_name ?? `#${item.player_id ?? item.id ?? item.element ?? 'Unknown'}`,
-    team: item.team ?? item.team_short_name ?? item.team_name ?? '',
+    team: item.team ?? item.team_code ?? item.team_short_name ?? item.team_name ?? '',
     status,
     expectedReturn,
     details: news,

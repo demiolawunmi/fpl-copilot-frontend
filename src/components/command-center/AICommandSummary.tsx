@@ -5,9 +5,13 @@ import { DashboardCard, DashboardHeader } from '../ui/dashboard';
 
 interface Props {
   summary: CommandCenterAISummary;
+  /** Re-run the model blend to refresh AI summary (same as Apply Blend in AI Sandbox). */
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
+  disableRefresh?: boolean;
 }
 
-const AICommandSummary = ({ summary }: Props) => {
+const AICommandSummary = ({ summary, onRefresh, isRefreshing = false, disableRefresh = false }: Props) => {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
 
   const toggleExpand = (index: number) => {
@@ -20,7 +24,18 @@ const AICommandSummary = ({ summary }: Props) => {
         title={summary.title}
         description={`AI-powered insights for GW ${summary.gameweek}`}
         action={
-          <Button size="xs" variant="outline" isDisabled borderColor="whiteAlpha.200" color="slate.500">
+          <Button
+            size="xs"
+            variant="outline"
+            borderColor="whiteAlpha.200"
+            color="slate.300"
+            _hover={{ bg: 'whiteAlpha.100', color: 'white' }}
+            _disabled={{ opacity: 0.45, cursor: 'not-allowed' }}
+            onClick={onRefresh}
+            isDisabled={disableRefresh || !onRefresh}
+            isLoading={isRefreshing}
+            loadingText="Refreshing"
+          >
             Refresh
           </Button>
         }
